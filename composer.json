@@ -1,0 +1,97 @@
+{
+  "name": "uag/uag-composer-project",
+  "description": "Project template for UAG projects with composer",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "Um að gera ehf.",
+      "email": "umadgera@umadgera.is"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/8"
+    },
+    {
+      "type": "composer",
+      "url": "https://asset-packagist.org"
+    },
+    {
+      "type": "gitlab",
+      "url":  "https://gitlab.com/um-ad-gera/uag-drupal-stuff/uag-simple-profile.git"
+    },
+    {
+      "type": "package",
+      "package": {
+        "name": "ckeditor/contents",
+        "version": "0.11",
+        "dist": {
+          "url": "https://download.ckeditor.com/contents/releases/contents_0.11.zip",
+          "type": "zip"
+        },
+        "type": "drupal-library"
+      }
+    },
+    {
+      "type": "package",
+      "package": {
+        "name": "toc/toc",
+        "version": "v0.3.2",
+        "type": "drupal-library",
+        "dist": {
+          "url": "https://raw.githubusercontent.com/jgallen23/toc/greenkeeper/update-all/dist/toc.min.js",
+          "type": "file"
+        }
+      }
+    }
+  ],
+  "require": {
+    "ext-json": "*",
+    "composer/installers": "^1.9",
+    "drupal/console": "^1.9",
+    "drupal/core-recommended": "^9",
+    "drupal/core-composer-scaffold": "^9",
+    "drupal/core-project-message": "^9",
+    "cweagans/composer-patches": "^1.6",
+    "oomphinc/composer-installers-extender": "^1.1",
+    "uag/uag-simple-profile": "dev-master"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^0",
+    "drupal/devel": "^4.0",
+    "drupal/drupal-extension": "^4.1",
+    "drupal/stage_file_proxy": "^1.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "bin-dir": "bin/",
+    "gitlab-domains": ["gitlab.com"],
+    "sort-packages": true
+  },
+  "extra": {
+    "drupal-scaffold": {
+      "locations": {
+        "web-root": "web/"
+      }
+    },
+    "installer-types": ["ddev-commands", "bower-asset", "npm-asset"],
+    "installer-paths": {
+      "web/core": ["type:drupal-core"],
+      "web/libraries/datetimepicker": ["npm-asset/jquery-datetimepicker"],
+      "web/libraries/{$name}": ["type:drupal-library", "type:bower-asset", "type:npm-asset", "w8tcha/ckeditor-wordcount-plugin"],
+      "web/modules/contrib/{$name}": ["type:drupal-module"],
+      "web/profiles/contrib/{$name}": ["type:drupal-profile"],
+      "web/themes/contrib/{$name}": ["type:drupal-theme"],
+      ".ddev/commands": ["type:ddev-commands"],
+      "drush/Commands/contrib/{$name}": ["type:drupal-drush"]
+    },
+    "composer-exit-on-patch-failure": true,
+    "enable-patching": true,
+    "patchLevel": {
+      "drupal/core": "-p2"
+    }
+  }
+}
