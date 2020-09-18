@@ -1,0 +1,298 @@
+<?php
+/**
+ * @file
+ * Defines a Musicbrainz API.
+ */
+
+define('MUSICBRAINZ_API', variable_get('musicbrainz_api_uri'));
+define('MUSICBRAINZ_CACHE_LIFETIME', variable_get('musicbrainz_api_cache_lifetime'));
+define('MUSICBRAINZ_MAX_HITS', variable_get('musicbrainz_api_max_hits'));
+define('MUSICBRAINZ_API_USER', variable_get('musicbrainz_api_user'));
+define('MUSICBRAINZ_API_APPLICATION_NAME', variable_get('musicbrainz_api_application_name'));
+
+/**
+ * Implements hook_menu().
+ */
+function musicbrainz_api_menu() {
+  $items['admin/config/services/musicbrainz_api'] = array(
+    'title' => 'Musicbrainz API module settings',
+    'description' => 'Cache and authentication key settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('musicbrainz_api_admin'),
+    'access arguments' => array('administer musicbrainz api settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'musicbrainz_api.admin.inc',
+    'file path' => drupal_get_path('module', 'musicbrainz_api'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function musicbrainz_api_permission()
+{
+  return [
+    'administer musicbrainz api settings' => [
+      'title' => t('Administer Musicbrainz API settings')
+    ]
+  ];
+}
+
+/**
+ * Searches for artist
+ *
+ * @param $artist_name string
+ *   The name of the artist
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_search_artist($artist_name, $full_results = false) {
+  $search_results = null;
+
+  $uri = MUSICBRAINZ_API . 'artist/?query=' . rawurlencode($artist_name) .
+    '&limit=' . MUSICBRAINZ_MAX_HITS . '&fmt=json';
+  $search_results = _musicbrainz_api_get_query($uri);
+
+  if($full_results) {
+    foreach($search_results['artists'] as &$result){
+      $result = musicbrainz_api_get_artist($result['id']);
+      sleep(1);
+    }
+  }
+
+  return $search_results;
+}
+
+/**
+ * Searches for album
+ *
+ * @param $album_name sting
+ *   The name of the album
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_search_album($album_name, $full_results = false) {
+  $search_results = null;
+
+  $uri = MUSICBRAINZ_API . 'recording/?query=' . rawurlencode($album_name) .
+    '&limit=' . MUSICBRAINZ_MAX_HITS . '&fmt=json' ;
+  $search_results = _musicbrainz_api_get_query($uri);
+
+  return $search_results;
+}
+
+/**
+ * Searches for individual tracks
+ *
+ * @param $track_name string
+ *   The track name
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_search_track($track_name) {
+  $uri = MUSICBRAINZ_API . 'recording/?query=' . rawurlencode($track_name) .
+    '&limit=' . MUSICBRAINZ_MAX_HITS . '&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets area information, based on the MBID
+ *
+ * @param $area_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_area($area_id) {
+  $uri = MUSICBRAINZ_API . 'area/' . rawurlencode($area_id) . '?fmt=json';
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets artist information, based on the MBID
+ *
+ * @param $artist_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_artist($artist_id) {
+  $uri = MUSICBRAINZ_API . 'artist/' . rawurlencode($artist_id) .
+    '?inc=recordings+releases+release-groups+works&limit=' .
+    MUSICBRAINZ_MAX_HITS . '&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets event information, based on the MBID
+ *
+ * @param $event_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_event($event_id) {
+  $uri = MUSICBRAINZ_API . 'event/' . rawurlencode($event_id) .
+    '?fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets instrument information, based on the MBID
+ *
+ * @param $instrument_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_instrument($instrument_id) {
+  $uri = MUSICBRAINZ_API . 'instrument/' . rawurlencode($instrument_id) .
+    '?fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets label information, based on the MBID
+ *
+ * @param $label_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_label($label_id) {
+  $uri = MUSICBRAINZ_API . 'label/' . rawurlencode($label_id) .
+    '?inc=releases&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets track information, based on the MBID
+ *
+ * @param $track_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_track($track_id) {
+  $uri = MUSICBRAINZ_API . 'recording/' . rawurlencode($track_id) .
+    '?inc=artists+releases&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets album information, based on the MBID
+ *
+ * @param $album_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_album($album_id) {
+  $uri = MUSICBRAINZ_API . 'release/' . rawurlencode($album_id) .
+    '?inc=artists+collections+labels+recordings+release-groups&limit=' .
+    MUSICBRAINZ_MAX_HITS . '&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Gets release group information, based on the MBID
+ *
+ * @param $release_group_id string
+ *   MBID string
+ *
+ * @return object
+ *   The search result from Musicbrainz, or an error message
+ */
+function musicbrainz_api_get_release_group($release_group_id) {
+  $uri = MUSICBRAINZ_API . 'release-group/' . rawurlencode($release_group_id) .
+    '?inc=artists+releases&limit=' .
+    MUSICBRAINZ_MAX_HITS . '&fmt=json' ;
+  return _musicbrainz_api_get_query($uri);
+}
+
+/**
+ * Sends a GET query to Musicbrainz for specific URL
+ *
+ * @param $uri string
+ *   The fully generated search string
+ * @return object
+ *   Returns a stdClass with the search results or an error message
+ */
+function _musicbrainz_api_get_query($uri) {
+  $cache = _musicbrainz_api_get_cache_search($uri);
+  $search_results = null;
+
+  if (!empty($cache)) {
+    $search_results = $cache;
+  }
+  else {
+    $options = array(
+      'method' => 'GET',
+      'timeout' => 3,
+      'headers' => array(
+        'User-agent' => MUSICBRAINZ_API_APPLICATION_NAME . ' ( ' . MUSICBRAINZ_API_USER . ' )',
+        'Accept' => 'application/json',
+      ),
+    );
+
+    $search_results = drupal_http_request($uri, $options);
+
+    if (empty($search_results->error)) {
+      $search_results = drupal_json_decode($search_results->data);
+      _musicbrainz_api_set_cache_search($uri, $search_results);
+
+    }
+    else {
+      drupal_set_message(t('The search request resulted in the following error: @error.', array(
+        '@error' => $search_results->error,
+      )));
+
+      return $search_results->error;
+    }
+  }
+
+  return $search_results;
+}
+
+/**
+ * Saves a search to Drupal's internal cache.
+ *
+ * @param string $cid
+ *   The cache id to use.
+ * @param array $data
+ *   The data to cache.
+ */
+function _musicbrainz_api_set_cache_search($cid, array $data) {
+  cache_set($cid, $data, 'musicbrainz-api-cache', time() + MUSICBRAINZ_CACHE_LIFETIME);
+}
+
+/**
+ * Looks up the specified cid in cache and returns if found
+ *
+ * @param string $cid
+ *   Normally a uri with a search string
+ *
+ * @return array|bool
+ *   Returns either the cache results or false if nothing is found.
+ */
+function _musicbrainz_api_get_cache_search($cid) {
+  $cache = cache_get($cid, 'musicbrainz-api-cache');
+  if (!empty($cache)) {
+    if ($cache->expire > time()) {
+      return $cache->data;
+    }
+  }
+  return FALSE;
+}

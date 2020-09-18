@@ -1,0 +1,278 @@
+<?php
+/**
+ * @file
+ * Defines a Spotify API.
+ */
+
+define('SPOTIFY_API', variable_get('spotify_api_uri'));
+define('SPOTIFY_CACHE_LIFETIME', variable_get('spotify_api_cache_lifetime'));
+define('SPOTIFY_MAX_HITS', variable_get('spotify_api_max_hits'));
+define('SPOTIFY_API_CLIENT_ID', variable_get('spotify_api_client_id'));
+define('SPOTIFY_API_CLIENT_SECRET', variable_get('spotify_api_client_secret'));
+
+/**
+ * Implements hook_menu().
+ */
+function spotify_api_menu() {
+  $items['admin/config/services/spotify_api'] = array(
+    'title' => 'Spotify API module settings',
+    'description' => 'Cache and authentication key settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('spotify_api_admin'),
+    'access arguments' => array('administer spotify api settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'spotify_api.admin.inc',
+    'file path' => drupal_get_path('module', 'spotify_api'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function spotify_api_permission()
+{
+  return [
+    'administer spotify api settings' => [
+      'title' => t('Administer Spotify API settings')
+    ]
+  ];
+}
+
+function spotify_api_get_auth_token() {
+  $token = _spotify_api_get_auth_token();
+
+  $a = 10;
+}
+
+/**
+ * Searches for artist
+ *
+ * @param $artist_name string
+ * @return array
+ *   The search result from Spotify, or an error message
+ */
+function spotify_api_search_artist($artist_name) {
+  $uri = SPOTIFY_API . '/search?q=artist:' . rawurlencode($artist_name) .
+    '&type=artist&limit=' . SPOTIFY_MAX_HITS;
+  return _spotify_api_get_query($uri);
+}
+
+/**
+ * Searches for album, with optional artist name as a second parameter.
+ * Artist name will narrow the search results and return more accurate results.
+ *
+ * Since search on Spotify does not return as accurate results as looking up
+ * a single item, if $full_result is set to true, we then iterate through the
+ * results, look up the album and merge the rest of the information into the
+ * search result, making the search results more accurate (but of course, makes
+ * few more API calls to Spotify each time).
+ *
+ * @param string $album_name
+ *   The search string
+ * @param string|null $artist_name
+ *   Optional parameter for better search results
+ * @param bool $full_result
+ *   If set to true, for each album, Spotify is called again, fetching more
+ *   detailed information.
+ *
+ * @return object
+ *   The search result from Spotify, or an error message
+ */
+function spotify_api_search_album($album_name, $artist_name = null,
+                                  $full_result = false) {
+  if($artist_name == 'Ýmsir') {
+    $artist_name = 'Various Artists';
+  }
+  $artist_name_string = ($artist_name)
+    ? '%20artist:' . rawurlencode($artist_name)
+    : '';
+
+  $uri = SPOTIFY_API . '/search?q=album:' . rawurlencode($album_name) .
+    $artist_name_string . '&type=album&limit=' . SPOTIFY_MAX_HITS;
+
+  $album_result = _spotify_api_get_query($uri);
+
+  if ($full_result){
+    foreach($album_result['albums']['items'] as &$item) {
+      $album_query_result = _spotify_api_get_query($item['href']);
+      $item = array_merge($item, $album_query_result);
+    }
+  }
+
+  return $album_result;
+}
+
+/**
+ * Searches for tracks, with optional artist name as a second parameter.
+ * Artist name will narrow the search results and return more accurate results.
+ *
+ * Since search on Spotify does not return as accurate results as looking up
+ * a single item, if $full_result is set to true, we then iterate through the
+ * results, look up the album and merge the rest of the information into the
+ * search result, making the search results more accurate (but of course, makes
+ * few more API calls to Spotify each time).
+ *
+ * @param string $track_name
+ *   The search string
+ * @param string|null $artist_name
+ *   Optional parameter for better search results
+ * @param bool $full_result
+ *   If set to true, for each album, Spotify is called again, fetching more
+ *   detailed information.
+ *
+ * @return object
+ *   The search result from Spotify, or an error message
+ */
+function spotify_api_search_track($track_name, $artist_name = null,
+                                  $full_result = false) {
+  if($artist_name == 'Ýmsir') {
+    $artist_name = 'Various Artists';
+  }
+  $artist_name_string = ($artist_name)
+    ? '%20artist:' . rawurlencode($artist_name)
+    : '';
+
+  $uri = SPOTIFY_API . '/search?q=track:' . rawurlencode($track_name) .
+    $artist_name_string . '&type=track&limit=' . SPOTIFY_MAX_HITS;
+
+  $track_result =  _spotify_api_get_query($uri);
+
+  if ($full_result) {
+    foreach($track_result['tracks']['items'] as &$item) {
+      $album_query_result = _spotify_api_get_query($item['album']['href']);
+      $item['album'] = array_merge($item['album'], $album_query_result);
+    }
+  }
+
+  return $track_result;
+}
+
+/**
+ * Returns one artist from Spotify, based on it's ID
+ *
+ * @param $artist_id
+ * @return object
+ */
+function spotify_api_get_artist($artist_id) {
+  $uri = SPOTIFY_API . '/artists/' . rawurlencode($artist_id);
+  $artist = _spotify_api_get_query($uri);
+
+  return $artist;
+}
+
+function spotify_api_get_album($album_id) {
+  $uri = SPOTIFY_API . '/albums/' .rawurlencode($album_id);
+  $album = _spotify_api_get_query($uri);
+
+  return $album;
+}
+
+function spotify_api_get_track($track_id) {
+  $uri = SPOTIFY_API . '/tracks/' .rawurlencode($track_id);
+  $album = _spotify_api_get_query($uri);
+
+  return $album;
+}
+
+/**
+ * Sends a GET query to Spotify for specific URL
+ *
+ * @param $uri string
+ *   The fully generated search string
+ * @return object
+ *   Returns a stdClass with the search results or an error message
+ */
+function _spotify_api_get_query($uri) {
+  $cache = _spotify_api_get_cache_search($uri);
+  $search_results = null;
+
+  if (!empty($cache)) {
+    $search_results = $cache;
+  }
+  else {
+    $token = _spotify_api_get_auth_token();
+    $token = json_decode($token);
+    $options = array(
+      'method' => 'GET',
+      'timeout' => 3,
+      'headers' => array(
+        'Accept' => 'application/json',
+        'Authorization' => "Bearer " . $token->access_token,
+      ),
+    );
+
+    $search_results = drupal_http_request($uri, $options);
+
+    if (empty($search_results->error)) {
+      $search_results = drupal_json_decode($search_results->data);
+      _spotify_api_set_cache_search($uri, $search_results);
+
+    }
+    else {
+      drupal_set_message(t('The search request resulted in the following error: @error.', array(
+        '@error' => $search_results->error,
+      )));
+
+      return $search_results->error;
+    }
+  }
+
+  return $search_results;
+}
+
+/**
+ * Saves a search to Drupal's internal cache.
+ *
+ * @param string $cid
+ *   The cache id to use.
+ * @param array $data
+ *   The data to cache.
+ */
+function _spotify_api_set_cache_search($cid, array $data) {
+  cache_set($cid, $data, 'spotify-api-cache', time() + SPOTIFY_CACHE_LIFETIME);
+}
+
+/**
+ * Looks up the specified cid in cache and returns if found
+ *
+ * @param string $cid
+ *   Normally a uri with a search string
+ *
+ * @return array|bool
+ *   Returns either the cache results or false if nothing is found.
+ */
+function _spotify_api_get_cache_search($cid) {
+  $cache = cache_get($cid, 'spotify-api-cache');
+  if (!empty($cache)) {
+    if ($cache->expire > time()) {
+      return $cache->data;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Gets Auth token from the Spotify API
+ */
+function _spotify_api_get_auth_token() {
+  $connection_string = "https://accounts.spotify.com/api/token";
+  $key = base64_encode(SPOTIFY_API_CLIENT_ID . ':' . SPOTIFY_API_CLIENT_SECRET);
+  $ch = curl_init();
+
+  curl_setopt($ch, CURLOPT_URL, $connection_string);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, "grant_type=client_credentials");
+  curl_setopt($ch, CURLOPT_POST, 1);
+
+  $headers = array();
+  $headers[] = "Authorization: Basic " . $key;
+  $headers[] = "Content-Type: application/x-www-form-urlencoded";
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+  $result = curl_exec($ch);
+
+  curl_close ($ch);
+  return $result;
+}

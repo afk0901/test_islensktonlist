@@ -1,0 +1,4 @@
+name = Spotify API
+description = Provides API functions for the Spotify API
+package = Music API Providers
+core = 7.x

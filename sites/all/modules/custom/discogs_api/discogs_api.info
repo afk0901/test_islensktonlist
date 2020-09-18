@@ -1,0 +1,4 @@
+name = Discogs API
+description = Provides API functions for the Discogs API
+package = Music API Providers
+core = 7.x

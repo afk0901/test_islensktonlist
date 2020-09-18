@@ -1,0 +1,6 @@
+name = Islensk Tonlist Data Migration
+description = API to migrate data from older database into Drupal
+core = 7.x
+package = Islensk tonlist
+
+dependencies[] = spotify_lookup_api

@@ -1,0 +1,1014 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: drupalviking
+ * Date: 11/10/16
+ * Time: 10:33
+ */
+
+define('HLJOMPLATA', 22);
+define('LAG', 153);
+define('SERIA', 154);
+define('SAFNPLATA', 182);
+
+define('HLJOMSVEIT', 3);
+define('EINSTAKLINGUR', 4);
+define('KOR', 185);
+
+/**
+ * Gets all appearance relations for work
+ *
+ * @param $work_id
+ * @return null
+ */
+function ismus_api_get_all_appearance_relations_for_work($work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'kemur_fyrir_a')
+    ->fieldCondition('endpoints', 'entity_id', $work_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Fetches all musicians that played this particular song.  The display is split
+ * up into four categories, Musicians, Authors, Recording professionals and other
+ * technical jobs.
+ *
+ * @param $work_id
+ * @return null
+ */
+function ismus_api_get_all_musician_relations_for_work($work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type' , 'relation')
+    ->propertyCondition('relation_type', 'leikur_i')
+    ->fieldCondition('endpoints', 'entity_id', $work_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Fetches all songs that this artist plays.  The display is split
+ * up into four categories, Musicians, Authors, Recording professionals and other
+ * technical jobs.
+ *
+ * @param $artist_id
+ * @return null
+ */
+function ismus_api_get_all_work_relations_for_artist($artist_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type' , 'relation')
+    ->propertyCondition('relation_type', 'leikur_i')
+    ->fieldCondition('endpoints', 'entity_id', $artist_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Returns all artist performs work relations.  Artist is here a band or another
+ * performer and work can be either a song or an album.
+ *
+ * @param $artist_id
+ * @param $work_id
+ * @return null
+ */
+function ismus_api_get_artist_performs_work_relations($artist_id, $work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type' , 'relation')
+    ->propertyCondition('relation_type', 'flytur');
+  if(isset($artist_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $artist_id, '=');
+  }
+  if(isset($work_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $work_id, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_song_exists_on_album_relations($work_id, $song_id) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'kemur_fyrir_a');
+  if(isset($work_id)) {
+    $result->fieldCondition('endpoints', 'entity_id', $work_id, '=');
+  }
+  if(isset($song_id)) {
+    $result->fieldCondition('endpoints', 'entity_id', $song_id, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0) {
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_publisher_exists_in_album_relations($work_id, $publisher_id) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_gefin_ut_af');
+
+  if(isset($publisher_id) && isset($work_id)) {
+    $query_result = db_query(
+      "SELECT entity_id FROM field_data_endpoints
+        WHERE endpoints_entity_id = " . $publisher_id . "
+        AND entity_id in
+        (
+          SELECT entity_id
+          FROM field_data_endpoints fde
+          WHERE fde.endpoints_entity_id = " . $work_id . "
+          AND fde.`bundle` = 'er_gefin_ut_af'
+        );
+      "
+    );
+
+    $query_result = $query_result->fetchObject();
+    if(!$query_result) {
+      return null;
+    }
+    $result->propertyCondition('rid', $query_result->entity_id, '=');
+  }
+  elseif(isset($work_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $work_id, '=');
+  }
+  elseif(isset($publisher_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $publisher_id, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0) {
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+
+/**
+ * Used in ismus_admin for form creation
+ *
+ * @param $parent_id
+ * @param $child_id
+ * @return null
+ */
+function ismus_api_get_work_is_part_of_another_work_relation($parent_id, $child_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_til_i_utgafunni');
+  if(isset($parent_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $parent_id, '=');
+  }
+  if(isset($child_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $child_id, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_artist_exists_in_song_relations($work_id, $artist_id) {
+  $results = null;
+  $bundle = 'leikur_i';
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', $bundle);
+
+  if(isset($artist_id) && isset($work_id)) {
+    $query_result = db_query(
+      "SELECT entity_id FROM field_data_endpoints
+        WHERE endpoints_entity_id = " . $artist_id . "
+        AND entity_id in
+        (
+          SELECT entity_id
+          FROM field_data_endpoints fde
+          WHERE fde.endpoints_entity_id = " . $work_id . "
+          AND fde.`bundle` = 'leikur_i'
+        );
+      "
+    );
+
+    $query_result = $query_result->fetchObject();
+    if(!$query_result) {
+      return null;
+    }
+    $result->propertyCondition('rid', $query_result->entity_id, '=');
+  }
+  elseif(isset($work_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $work_id, '=');
+  }
+  elseif(isset($artist_id)){
+    $result->fieldCondition('endpoints', 'entity_id', $artist_id, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Gets all decendancies for work.  A decendancy is either a child version of a
+ * song (live or another cover version) or it's the parent (the original).
+ * Used in work display
+ *
+ * @param $work_id
+ * @return null
+ */
+function ismus_api_get_decendancy_of_work($work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_til_i_utgafunni')
+    ->fieldCondition('endpoints', 'entity_id', $work_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_performer_of_work($work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'flytur')
+    ->fieldCondition('endpoints', 'entity_id', $work_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Gets all publishers for one work entity
+ *
+ * @param $work_id
+ * @return null
+ */
+function ismus_api_get_publisher_of_work($work_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_gefin_ut_af')
+    ->fieldCondition('endpoints', 'entity_id', $work_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Loads all entities from relations array.
+ * The return array can contain one or two arrays, depending on the relations
+ * array.
+ * Either array contains more arrays,It also attaches the relation node t
+ * @param $relations
+ * @param $entity_id
+ * @return array
+ */
+function ismus_api_load_entities_from_relations($relations, $entity_id){
+  $array = [];
+  if(is_null($relations)){
+    return null;
+  }
+  foreach($relations as $rel){
+    $first_nid = $rel->endpoints[LANGUAGE_NONE][0]['entity_id'];
+    $second_nid = $rel->endpoints[LANGUAGE_NONE][1]['entity_id'];
+
+    if(($first_nid == $entity_id)){
+      $arr['node'] = node_load($second_nid);
+      $arr['relation'] = $rel;
+      $array['belongs_to'][] = $arr;
+    }
+    else{
+      $arr['node'] = node_load($first_nid);
+      $arr['relation'] = $rel;
+      $array['contains'][] = $arr;
+    }
+  }
+
+  return $array;
+}
+
+/**
+ * Autocomplete in forms returns strings in the version "string [id]".  When
+ * the form is processed, we need to separate those two, so we can use the id
+ * in database key references.
+ *
+ * @param $string
+ * @return array|string
+ */
+function ismus_api_extract_string_and_id_from_autocomplete($string) {
+  $return_arr = [];
+  if (strlen($string) > 0) {
+    $opening = strrpos($string, '[');
+    $closing = strrpos($string, ']');
+
+    if ($opening) {
+      $return_arr['string'] = trim(substr($string, 0, $opening - 1));
+      $return_arr['id'] = trim(substr($string, $opening + 1, $closing - $opening - 1));
+      return $return_arr;
+    }
+    return ['string' => $string];
+  }
+  return ['string' => $string];
+}
+
+function ismus_api_get_all_work_for_artist($artist_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'flytur')
+    ->fieldCondition('endpoints', 'entity_id', $artist_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_all_work_for_publisher($publisher_id) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_gefin_ut_af')
+    ->fieldCondition('endpoints', 'entity_id', $publisher_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_get_album_for_song($song_id) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'kemur_fyrir_a')
+    ->fieldCondition('endpoints', 'entity_id', $song_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_search_for_artist($artist_name){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'artist')
+    ->propertyCondition('status', 1, '=')
+    ->propertyCondition('title', $artist_name, 'CONTAINS')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('node', array_keys($result['node']));
+
+  return $results;
+}
+
+function ismus_api_search_for_artist_in_old_db($artist_name, $exclude_array = null){
+  if($exclude_array){
+    $exclude_array_string = implode(',', $exclude_array);
+    $query_string = "SELECT * FROM ismus_Artist
+      WHERE `name` LIKE '{$artist_name}%'
+      AND id NOT IN ({$exclude_array_string})";
+
+    return db_query(
+      $query_string
+    )->fetchAllAssoc("id");
+  }
+  else{
+    return db_query(
+      "SELECT * FROM ismus_Artist
+    WHERE `name` LIKE '{$artist_name}%';"
+    )->fetchAllAssoc("id");
+  }
+}
+
+function ismus_api_get_all_instruments_for_artist($artist_id, $tax_id = null) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'leikur_a')
+    ->fieldCondition('endpoints', 'entity_id', $artist_id, '=');
+
+  if($tax_id) {
+    $result->fieldCondition('endpoints', 'entity_id', $tax_id, '=');
+  }
+  $result = $result->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+/**
+ * Creates an entity of content type Artist.
+ *
+ * @param stdClass $artist
+ * @return stdClass $node The node created
+ */
+function ismus_api_create_artist($artist){
+  global $user;
+  $node = new stdClass();
+  $node->title = $artist->name;
+  $node->type = 'artist';
+  node_object_prepare($node);
+
+  if(isset($artist->real_name)){
+    $node->field_real_name[LANGUAGE_NONE][0]['value'] = $artist->real_name;
+  }
+  if(isset($artist->alternate_name)){
+    $node->field_alternate_names[LANGUAGE_NONE][0]['value'] = $artist->alternate_name;
+  }
+  if(isset($artist->born)){
+    $node->field_born[LANGUAGE_NONE][0] = [
+      'value' => $artist->born,
+    ];
+  }
+  if(isset($artist->died)){
+    $node->field_died[LANGUAGE_NONE][0] = [
+      'value' => $artist->died,
+    ];
+  }
+  if(isset($artist->biography)){
+    $node->field_biography[LANGUAGE_NONE][0]['value'] = $artist->biography;
+  }
+  if(isset($artist->foreign_artist)){
+    $node->field_foreign_artist[LANGUAGE_NONE][0]['value'] = $artist->foreign_artist;
+  }
+  if(isset($artist->old_id)){
+    $node->field_original_id[LANGUAGE_NONE][0]['value'] = $artist->old_id;
+  }
+  if(isset($artist->artist_type_tid)){
+    $node->field_artist_type[LANGUAGE_NONE][0]['tid'] = $artist->artist_type_tid;
+  }
+  $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = 0;
+
+  $node->language = 'is';
+  $node->uid = $user->uid;
+  node_save($node);
+
+  return $node;
+}
+
+function ismus_api_search_for_work($work_title, $type = null, $excact = false) {
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'work')
+    ->propertyCondition('status', 1, '=');
+  if(!$excact) {
+    $result->propertyCondition('title', $work_title, 'CONTAINS');
+  }
+  else {
+    $result->propertyCondition('title', $work_title, '=');
+  }
+
+
+  if($type) {
+    $result->fieldCondition('field_work_type', 'tid', $type, '=');
+  }
+
+  $result = $result->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  if(!$excact) {
+    $results = entity_load('node', array_keys($result['node']));
+  }
+  else {
+    $results = entity_load('node', array_keys($result['node']));
+    $results = array_values($results);
+    $results = $results[0];
+  }
+
+  return $results;
+}
+
+function ismus_api_search_for_work_in_old_db($album_title, $exclude_array) {
+  if($exclude_array){
+    $exclude_array_string = implode(',', $exclude_array);
+    $query_string = "SELECT w.id, w.name, a.name as artist_name, wt.name as work_type 
+      FROM ismus_Work w
+      INNER JOIN ismus_Artist a ON w.artist_id = a.id
+      INNER JOIN ismus_WorkType wt on w.work_type_id = wt.id 
+      WHERE w.`name` LIKE '{$album_title}%'
+      AND id NOT IN ({$exclude_array_string})";
+
+    return db_query(
+      $query_string
+    )->fetchAllAssoc("id");
+  }
+  else{
+    return db_query(
+      "SELECT w.id, w.name, a.name as artist_name, wt.name as work_type 
+      FROM ismus_Work w
+      INNER JOIN ismus_Artist a ON w.artist_id = a.id
+      INNER JOIN ismus_WorkType wt on w.work_type_id = wt.id 
+      WHERE w.`name` LIKE  '{$album_title}%';"
+    )->fetchAllAssoc("id");
+  }
+}
+
+function ismus_api_create_work($work, $type = HLJOMPLATA) {
+  global $user;
+  $node = new stdClass();
+  $node->title = $work->name;
+  $node->type = 'work';
+  node_object_prepare($node);
+
+  $node->language = 'is';
+  $node->uid = $user->uid;
+
+  if(isset($work->old_id)) {
+    $node->field_original_id[LANGUAGE_NONE][0]['value'] = $work->old_id;
+  }
+
+  $node->field_work_type[LANGUAGE_NONE][0]['tid'] = $type;
+
+  node_save($node);
+
+  return $node;
+}
+
+/**
+ * Creates an scald atom and downloads an image from url.
+ * @param $image_url
+ * @param $filename
+ * @return bool|null
+ */
+function _ismus_api_create_scald_image($image_url, $filename){
+  $document = null;
+  $document = file_get_contents( $image_url );
+  if(!$document) {
+    $document = discogs_api_get_image($image_url);
+  }
+
+  if( $document ){
+    $file = file_save_data( $document, 'public://atoms/images/' . $filename, FILE_EXISTS_RENAME );
+    $atom = new stdClass();
+
+    $atom->type = 'image';
+    $atom->provider = 'scald_image';
+    //Gefið er að (admin) sé sá sem er að þessu, en auðvitað má setja inn hvaða
+    //valid uid sem er.
+    $atom->publisher = 1;
+    $atom->language = 'und';
+    //Actions breytan hefur default gildið 5, sem er Fetch og View
+    $atom->actions = 5;
+    $atom->title = ucwords(str_replace('_',' ',basename($file->filename)));
+    $atom->base_id = $file->fid;
+
+    //Thumbnail
+    $atom->scald_thumbnail['und'][0]['fid'] = $file->fid;
+    $atom->scald_thumbnail['und'][0]['display'] = '1';
+    if(isset($file->metadata)){
+      $atom->scald_thumbnail['und'][0]['width'] = $file->metadata['width'];
+      $atom->scald_thumbnail['und'][0]['height'] = $file->metadata['height'];
+    }
+    $atom->scald_thumbnail['und'][0]['description'] = '';
+    $atom->scald_thumbnail['und'][0]['upload_button'] = 'Upload';
+    $atom->scald_thumbnail['und'][0]['remove_button'] = 'Remove';
+    $atom->scald_thumbnail['und'][0]['upload'] = '';
+    $atom->scald_thumbnail['und'][0]['alt'] = $atom->title;
+    $atom->scald_thumbnail['und'][0]['title'] = $atom->title;
+
+    //Vistar atómið í Drupal og skilar þér til baka Scald ID-inu
+    return scald_atom_save($atom);
+  }
+  return null;
+}
+
+function _ismus_api_search_taxonomy_term($vid, $tag) {
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'taxonomy_term')
+    ->propertyCondition('vid', $vid)
+    ->propertyCondition('name', $tag)
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('taxonomy_term', array_keys($result['taxonomy_term']));
+  $results = array_values($results);
+  $results = $results[0];
+
+  return $results;
+}
+
+function ismus_api_extract_id_from_brackets($text) {
+  $open_bracket_pos = strpos($text, '[');
+  $close_bracket_pos = strpos($text, ']');
+  return substr($text, $open_bracket_pos+1, $close_bracket_pos-$open_bracket_pos-1);
+}
+
+function ismus_api_extract_name_and_id_from_text($text) {
+  $open_bracket_pos = strpos($text, '[');
+  $close_bracket_pos = strpos($text, ']');
+  if($open_bracket_pos) {
+    $array['id'] = substr($text, $open_bracket_pos+1, $close_bracket_pos-$open_bracket_pos-1);
+    $array['text'] = substr($text, 0, $open_bracket_pos);
+  }
+  else {
+    $array['text'] = $text;
+  }
+
+  return $array;
+}
+
+function ismus_api_create_artist_performs_work_relation($artist_id, $work_id) {
+  $relation = relation_create('flytur', [
+    ['entity_type' => 'node', 'entity_id' => $artist_id],
+    ['entity_type' => 'node', 'entity_id' => $work_id],
+  ], null);
+
+  relation_save($relation);
+  drupal_set_message(t('Relationship saved'));
+}
+
+/**
+ * Gets all band relations for one artist.
+ *
+ * @param $artist_id
+ * @return null
+ */
+function ismus_api_get_all_band_relations_for_artist($artist_id){
+  $results = null;
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'a_er_medlimur_i_b')
+    ->fieldCondition('endpoints', 'entity_id', $artist_id, '=')
+    ->execute();
+
+  if(sizeof($result) == 0){
+    return null;
+  }
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_api_add_song_to_album($data, $album_id, $artist_id, $live, $spotify = true) {
+  $songs_array = null;
+  $album_node = node_load($album_id);
+  //@todo Return all songs to a table, for editing before submitting.
+
+  $counter = 1;
+  foreach($data as $song) {
+    $song_obj = null;
+    if(!$live) {
+      if($spotify) {
+        $song_obj = ismus_api_search_for_work($song['name'], LAG, true);
+        if($song_obj) {
+          $song_artist = array_values(ismus_api_get_performer_of_work($song_obj->nid));
+          if($song_artist[0]->endpoints[LANGUAGE_NONE][0]['entity_id'] == $artist_id) {
+            ismus_api_add_song_to_album_relation(
+              $song_obj->nid, $album_node->nid,
+              _ismus_api_generate_track_number($song, $counter, $spotify)
+            );
+          }
+          else {
+            $song_obj = null;
+          }
+        }
+      }
+      else {
+        $song_obj = ismus_api_search_for_work($song['title'], LAG, true);
+        if($song_obj) {
+          ismus_api_add_song_to_album_relation(
+            $song_obj->nid, $album_node->nid,
+            _ismus_api_generate_track_number($song, $counter, $spotify)
+          );
+        }
+      }
+    }
+
+    if(!$song_obj) {
+      $song_obj = ismus_api_create_song($song, $album_node, $counter++, $spotify);
+    }
+    $songs_array[] = $song_obj;
+
+    ismus_api_add_artist_performs_song_relation($artist_id, $song_obj->nid);
+  }
+
+  return $songs_array;
+}
+
+function ismus_api_create_song($song, $album, $counter, $spotify = true) {
+  $node = new stdClass();
+  $node->title = ($spotify) ? $song['name'] : $song['title'];
+  $node->type = 'work';
+  node_object_prepare($node);
+
+  $node->field_work_type[LANGUAGE_NONE][0]['tid'] = LAG;
+
+  if($spotify) {
+    $node->field_spotify_id[LANGUAGE_NONE][0]['value'] = $song['id'];
+    $node->field_duration[LANGUAGE_NONE][0]['value'] = floor($song['duration_ms'] / 1000);
+    $node->field_spotify_song_preview_url[LANGUAGE_NONE][0]['value'] = $song['preview_url'];
+  }
+  else {
+    if(isset($song['duration'])) {
+      if(strlen($song['duration']) > 0) {
+        $node->field_duration[LANGUAGE_NONE][0]['value'] = strtotime($song['duration']);
+      }
+    }
+  }
+
+  $node->field_cover_image = $album->field_cover_image;
+  $node->field_genre = $album->field_genre;
+
+  node_save($node);
+
+  ismus_api_add_song_to_album_relation(
+    $node->nid, $album->nid,
+    _ismus_api_generate_track_number($song, $counter, $spotify)
+  );
+
+  return $node;
+}
+
+/**
+ * @param $song_id
+ * @param $album_id
+ * @return mixed
+ */
+function ismus_api_add_song_to_album_relation($song_id, $album_id, $position = 0) {
+  $relation = ismus_api_get_song_exists_on_album_relations($song_id, $album_id);
+  if(is_array($relation)){
+    drupal_set_message('Relationship already exists', 'warning');
+  }
+  $relation = relation_create('kemur_fyrir_a', [
+    ['entity_type' => 'node', 'entity_id' => $song_id],
+    ['entity_type' => 'node', 'entity_id' => $album_id],
+  ], NULL);
+
+  relation_save($relation);
+  $relation = relation_load($relation->rid);
+  $relation->field_rank[LANGUAGE_NONE][0]['value'] = $position;
+  relation_save($relation);
+
+  return $relation;
+}
+
+function ismus_api_add_artist_performs_song_relation($artist_id, $song_id) {
+  $relation = relation_create('flytur', [
+    ['entity_type' => 'node', 'entity_id' => $artist_id],
+    ['entity_type' => 'node', 'entity_id' => $song_id]
+  ]);
+
+  relation_save($relation);
+}
+
+function ismus_api_convert_ms_into_hrs_mins_sec($milliseconds) {
+  $seconds = floor($milliseconds / 1000);
+  $minutes = floor($seconds / 60);
+  $hours = floor($minutes / 60);
+  $milliseconds = $milliseconds % 1000;
+  $seconds = $seconds % 60;
+  $minutes = $minutes % 60;
+
+  $format = '%u:%02u:%02u.%03u';
+  $time = sprintf($format, $hours, $minutes, $seconds, $milliseconds);
+  return rtrim($time, '0');
+}
+
+function _ismus_api_generate_track_number($song, $counter, $spotify) {
+  $disc_number = 1;
+  $song_number = 1;
+
+  if($spotify) {
+    if(isset($song['disc_number'])) {
+      $disc_number = $song['disc_number'];
+    }
+    if(isset($song['track_number'])) {
+      $song_number = $song['track_number'];
+    }
+  }
+  else {
+    $song_number = $counter;
+  }
+
+  $track_number = $disc_number . str_pad($song_number, 2, '0', STR_PAD_LEFT);
+  return (int)$track_number;
+}
+
+function _ismus_create_admin_relation_links($relation_id) {
+  $items[] = l('Breyta', 'relation/' . $relation_id . '/edit');
+  $items[] = l('Fjarlægja', 'relation/' . $relation_id . '/delete');
+
+  return theme_item_list(['items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => []]);
+}
+
+function ismus_api_add_artist_to_album_songs_with_relation($album_id, $artist_id, $roles) {
+  $songs = ismus_api_get_all_appearance_relations_for_work($album_id);
+  foreach($songs as $song) {
+    $song_id = $song->endpoints[LANGUAGE_NONE][0]['entity_id'];
+    $relation = relation_create('leikur_i', [
+      ['entity_type' => 'node', 'entity_id' => $artist_id],
+      ['entity_type' => 'node', 'entity_id' => $song_id],
+    ], NULL);
+
+    $rid = relation_save($relation);
+    $relation = relation_load($rid);
+    $relation->field_role[LANGUAGE_NONE] = ismus_api_extract_artist_role_taxonomy_terms_from_string($roles);
+    relation_save($relation);
+  }
+}
+
+function ismus_api_add_individual_artist_to_album_songs($album_id, $artist_id, $roles) {
+  $songs = ismus_api_get_all_appearance_relations_for_work($album_id);
+  foreach($songs as $song) {
+    $song_id = $song->endpoints[LANGUAGE_NONE][0]['entity_id'];
+    $relation = ismus_api_get_artist_exists_in_song_relations($song_id, $artist_id);
+    if(!is_array($relation)){
+      $relation = relation_create('leikur_i', [
+        ['entity_type' => 'node', 'entity_id' => $artist_id],
+        ['entity_type' => 'node', 'entity_id' => $song_id],
+      ], NULL);
+
+      $rid = relation_save($relation);
+      $relation = relation_load($rid);
+    }
+    else{
+      $relation = array_values($relation)[0];
+    }
+
+    $role_array = ismus_api_extract_artist_role_taxonomy_terms_from_string($roles);
+
+    $relation->field_role[LANGUAGE_NONE] = $role_array;
+
+    relation_save($relation);
+  }
+}
+
+function ismus_api_add_individual_artist_to_multiple_album_songs($songs) {
+  foreach($songs as $song) {
+    $relation = ismus_api_get_artist_exists_in_song_relations($song['song_id'], $song['artist_id']);
+
+    if(!is_array($relation)){
+      $relation = relation_create('leikur_i', [
+        ['entity_type' => 'node', 'entity_id' => $song['artist_id']],
+        ['entity_type' => 'node', 'entity_id' => $song['song_id']],
+      ], NULL);
+
+      $rid = relation_save($relation);
+      $relation = relation_load($rid);
+    }
+    else{
+      $relation = array_values($relation)[0];
+    }
+
+    $role_array = ismus_api_extract_artist_role_taxonomy_terms_from_string($song['instruments']);
+
+    $relation->field_role[LANGUAGE_NONE] = $role_array;
+
+    relation_save($relation);
+  }
+}
+
+function ismus_api_extract_artist_role_taxonomy_terms_from_string($string) {
+  $return_array = null;
+  $role_array = explode(',', $string);
+  foreach($role_array as $role) {
+    $term = array_values(taxonomy_get_term_by_name($role, 'artist_role'))[0];
+    $return_array[]['tid'] = $term->tid;
+  }
+
+  return $return_array;
+}
+
+function ismus_api_process_date_string($string) {
+  setlocale(LC_ALL, 'is_IS.UTF-8');
+  if(strlen($string) == 4) {
+    return $string;
+  }
+  elseif(strlen($string) == 7) {
+    return ucfirst(strftime('%B, %Y', strtotime($string)));
+  }
+  elseif(strlen($string) == 10) {
+    return strftime('%e. %B, %Y', strtotime($string));
+  }
+  else {
+    return $string;
+  }
+}
+
+function ismus_api_correct_case($string) {
+  return ucfirst(strtolower($string));
+}

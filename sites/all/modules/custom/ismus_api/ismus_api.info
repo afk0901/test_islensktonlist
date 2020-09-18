@@ -1,0 +1,4 @@
+name = Islensk Tonlist Admin module
+description = Contains misc forms to manipulate the database
+core = 7.x
+package = Islensk tonlist

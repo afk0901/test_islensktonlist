@@ -1,0 +1,4 @@
+name = Musicbrainz API
+description = Provides API functions for the Musicbrainz API
+package = Music API Providers
+core = 7.x

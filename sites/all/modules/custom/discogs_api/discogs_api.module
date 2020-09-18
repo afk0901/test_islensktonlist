@@ -1,0 +1,253 @@
+<?php
+/**
+ * @file
+ * Defines a Discogs API.
+ */
+
+define('DISCOGS_API', variable_get('discogs_api_uri'));
+define('DISCOGS_CACHE_LIFETIME', variable_get('discogs_api_cache_lifetime'));
+define('DISCOGS_MAX_HITS', variable_get('discogs_api_max_hits'));
+define('DISCOGS_API_APPLICATION_URL', variable_get('discogs_api_application_url'));
+define('DISCOGS_API_APPLICATION_NAME', variable_get('discogs_api_application_name'));
+define('DISCOGS_API_CONSUMER_KEY', variable_get('discogs_api_consumer_key'));
+define('DISCOGS_API_CONSUMER_SECRET', variable_get('discogs_api_consumer_secret'));
+
+/**
+ * Implements hook_menu().
+ */
+function discogs_api_menu() {
+  $items['admin/config/services/discogs_api'] = array(
+    'title' => 'Discogs API module settings',
+    'description' => 'Cache and authentication key settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('discogs_api_admin'),
+    'access arguments' => array('administer discogs api settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'discogs_api.admin.inc',
+    'file path' => drupal_get_path('module', 'discogs_api'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function discogs_api_permission()
+{
+  return [
+    'administer discogs api settings' => [
+      'title' => t('Administer Discogs API settings')
+    ]
+  ];
+}
+
+/**
+ * Searches for artist
+ *
+ * @param $artist_name string
+ *   The name of the artist
+ * @param $full_results bool
+ *   Indicates if you want to iterate through the result set and get more
+ *   detailed information. If so, additional API call is made to discogs for
+ *   each and every search result.
+ *
+ * @return array
+ *   The search result from Discogs, or an error message
+ */
+function discogs_api_search_artist($artist_name, $full_results = false) {
+  $search_results = null;
+
+  $uri = DISCOGS_API . 'database/search?q=' . rawurlencode($artist_name)
+    . '&type=artist';
+  $search_results = _discogs_api_get_query($uri);
+  if($full_results) {
+    foreach($search_results['results'] as &$result){
+      $result = discogs_api_get_artist($result['id']);
+    }
+  }
+
+  return $search_results;
+}
+
+/**
+ * Searches for album
+ *
+ * @param $album_name sting
+ *   The name of the album
+ *
+ * @return object
+ *   The search result from Discogs, or an error message
+ */
+function discogs_api_search_album($album_name, $artist_name = null) {
+  if($artist_name == 'Ýmsir') {
+    $artist_name = 'Various';
+  }
+  if($artist_name) {
+    $uri = DISCOGS_API . 'database/search?q=' . rawurlencode($artist_name)
+      . '-' . rawurlencode($album_name). '&type=release';
+  }
+  else {
+    $uri = DISCOGS_API . 'database/search?q=' . rawurlencode($album_name)
+      . '&type=release';
+  }
+
+  return _discogs_api_get_query($uri);
+}
+
+/**
+ * Searches for individual tracks
+ *
+ * @param $track_name string
+ *   The track name
+ *
+ * @return object
+ *   The search result from Discogs, or an error message
+ */
+function discogs_api_search_track($track_name, $artist_name = null) {
+  if($artist_name) {
+    $uri = DISCOGS_API . 'database/search?q=' . rawurlencode($artist_name)
+      . '-' . rawurlencode($track_name). '&type=release';
+  }
+  else {
+    $uri = DISCOGS_API . 'database/search?q=' . rawurlencode($track_name)
+      . '&type=release';
+  }
+
+  return _discogs_api_get_query($uri);
+}
+
+/**
+ * Gets one artist, based on his DCID
+ *
+ * @param $artist_id int
+ *   Artist Discogs ID
+ *
+ * @return object
+ *   The artist object, or an error message
+ */
+function discogs_api_get_artist($artist_id) {
+  $uri = DISCOGS_API . 'artists/' . (int)$artist_id;
+  return _discogs_api_get_query($uri);
+}
+
+/**
+ * Gets one release, based on it's DCID
+ *
+ * @param $release_id int
+ *   Release Discogs ID
+ *
+ * @return object
+ *   The release object, or an error message
+ */
+function discogs_api_get_release($release_id) {
+  $uri = DISCOGS_API . 'releases/' . (int)$release_id;
+  return _discogs_api_get_query($uri);
+}
+
+/**
+ * Gets one label, based on it's DCID
+ *
+ * @param $label_id int
+ *   Label Discogs ID
+ *
+ * @return object
+ *   The label object, or an error message
+ */
+function discogs_api_get_label($label_id) {
+  $uri = DISCOGS_API . 'labels/' . (int)$label_id;
+  return _discogs_api_get_query($uri);
+}
+
+/**
+ * Sends a GET query to Discogs for specific URL
+ *
+ * @param $uri string
+ *   The fully generated search string
+ * @return object
+ *   Returns a stdClass with the search results or an error message
+ */
+function _discogs_api_get_query($uri) {
+  $cache = _discogs_api_get_cache_search($uri);
+  $search_results = null;
+
+  if (!empty($cache)) {
+    $search_results = $cache;
+  }
+  else {
+    $options = array(
+      'method' => 'GET',
+      'timeout' => 3,
+      'headers' => array(
+        'User-agent' => DISCOGS_API_APPLICATION_NAME . ' +' . DISCOGS_API_APPLICATION_URL,
+        'Authorization' => 'Discogs key=' . DISCOGS_API_CONSUMER_KEY . ', secret=' . DISCOGS_API_CONSUMER_SECRET,
+        'Accept' => 'application/json',
+      ),
+    );
+
+    $search_results = drupal_http_request($uri, $options);
+
+    if (empty($search_results->error)) {
+      $search_results = drupal_json_decode($search_results->data);
+      _discogs_api_set_cache_search($uri, $search_results);
+
+    }
+    else {
+      drupal_set_message(t('The search request resulted in the following error: @error.', array(
+        '@error' => $search_results->error,
+      )));
+
+      return $search_results->error;
+    }
+  }
+
+  return $search_results;
+}
+
+/**
+ * Saves a search to Drupal's internal cache.
+ *
+ * @param string $cid
+ *   The cache id to use.
+ * @param array $data
+ *   The data to cache.
+ */
+function _discogs_api_set_cache_search($cid, array $data) {
+  cache_set($cid, $data, 'discogs-api-cache', time() + MUSICBRAINZ_CACHE_LIFETIME);
+}
+
+/**
+ * Looks up the specified cid in cache and returns if found
+ *
+ * @param string $cid
+ *   Normally a uri with a search string
+ *
+ * @return array|bool
+ *   Returns either the cache results or false if nothing is found.
+ */
+function _discogs_api_get_cache_search($cid) {
+  $cache = cache_get($cid, 'discogs-api-cache');
+  if (!empty($cache)) {
+    if ($cache->expire > time()) {
+      return $cache->data;
+    }
+  }
+  return FALSE;
+}
+
+function discogs_api_get_image($uri) {
+  $search_results = null;
+
+  $options = array(
+    'method' => 'GET',
+    'timeout' => 3,
+    'headers' => array(
+      'User-agent' => DISCOGS_API_APPLICATION_NAME . ' +' . DISCOGS_API_APPLICATION_URL,
+      'Authorization' => 'Discogs key=' . DISCOGS_API_CONSUMER_KEY . ', secret=' . DISCOGS_API_CONSUMER_SECRET,
+    ),
+  );
+
+  $search_results = drupal_http_request($uri, $options);
+
+  return $search_results->data;
+}

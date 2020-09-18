@@ -1,0 +1,608 @@
+<?php
+define ('BAND', 3);
+define ('INDIVIDUAL', 4);
+/**
+ * Created by PhpStorm.
+ * User: drupalviking
+ * Date: 19/07/16
+ * Time: 10:04
+ */
+
+
+/**
+ * Adds one artist to the Artist content type
+ *
+ * @param $artist
+ * @param $spotify_object
+ * @param $artist_genre
+ * @throws \Exception
+ * @return stdClass
+ */
+function ismus_data_migration_add_artist($artist, $spotify_object, $artist_genre){
+  $node = new stdClass();
+  $node->title = $artist->name;
+  $node->type = 'artist';
+  node_object_prepare($node);
+
+  if(isset($artist->real_name)){
+    $node->field_real_name[LANGUAGE_NONE][0]['value'] = $artist->real_name;
+  }
+  if(isset($artist->alternate_name)){
+    $node->field_alternate_names[LANGUAGE_NONE][0]['value'] = $artist->alternate_name;
+  }
+  if(isset($artist->born)){
+    $node->field_born[LANGUAGE_NONE][0]['value'] = strtotime($artist->born);
+  }
+  if(isset($artist->died)){
+    $node->field_died[LANGUAGE_NONE][0]['value'] = strtotime($artist->died);
+  }
+  if(isset($artist->biography)){
+    $node->field_biography[LANGUAGE_NONE][0]['value'] = $artist->biography;
+  }
+  if(isset($artist->foreign_artist)){
+    $node->field_foreign_artist[LANGUAGE_NONE][0]['value'] = $artist->foreign_artist;
+  }
+  if(isset($artist->ischecked)){
+    $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = $artist->ischecked;
+  }
+  //This ID is always set, therefor we don't have to wrap it.
+  $node->field_original_id[LANGUAGE_NONE][0]['value'] = $artist->id;
+  $node->field_artist_type[LANGUAGE_NONE][0]['tid'] = ($artist->artist_type_id == 1) ? BAND : INDIVIDUAL;
+
+  $scald_atom = null;
+
+  if(isset($spotify_object)){
+    if(isset($spotify_object->image)){
+      $filename = transliteration_get(str_replace(' ', '_', mb_strtolower(trim($artist->name))));
+      $scald_atom = _ismus_data_migration_create_scald_image($spotify_object->image, $filename);
+      $node->field_avatar[LANGUAGE_NONE][0]['sid'] = $scald_atom;
+      $node->field_spotify_artist_id[LANGUAGE_NONE][0]['value'] = $spotify_object->id;
+      $node->field_spotify_artist_name[LANGUAGE_NONE][0]['value'] = $spotify_object->name;
+    }
+  }
+
+  if($artist_genre){
+    $index = 0;
+    foreach($artist_genre as $genre){
+      $tax = taxonomy_get_term_by_name($genre->name);
+      $tax = array_values($tax);
+      $node->field_genre[LANGUAGE_NONE][$index++]['tid'] = $tax[0]->tid;
+    }
+  }
+
+  $node->language = 'is';
+  $node->uid = 1;
+  node_save($node);
+  return $node;
+}
+
+function ismus_data_migration_add_album($album, $spotify_object, $album_genre){
+  $node = new stdClass();
+  $node->title = $album->name;
+  $node->type = 'work';
+  node_object_prepare($node);
+
+  if(isset($album->ischecked)){
+    $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = $album->ischecked;
+  }
+  if(isset($album->duration)){
+    $time = strtotime("1970-01-01 " . $album->duration);
+    $node->field_duration[LANGUAGE_NONE][0]['value'] = $time;
+  }
+  if(isset($album->overview)){
+    $node->field_description[LANGUAGE_NONE][0]['value'] = $album->overview;
+  }
+  if(isset($album->ischecked)){
+    $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = $album->ischecked;
+  }
+
+  //This ID is always set, therefor we don't have to wrap it.
+  $node->field_original_id[LANGUAGE_NONE][0]['value'] = $album->id;
+  //It's an album, therefor we can set the Taxonomy id (22 is equal to album)
+  $node->field_work_type[LANGUAGE_NONE][0]['tid'] = 22;
+
+  $scald_atom = null;
+
+  if(isset($spotify_object)){
+    if(isset($spotify_object->image)){
+      $filename = transliteration_get(str_replace(' ', '_', mb_strtolower(trim($album->name))));
+      $scald_atom = _ismus_data_migration_create_scald_image($spotify_object->image, $filename);
+      $node->field_cover_image[LANGUAGE_NONE][0]['sid'] = $scald_atom;
+    }
+    $node->field_spotify_id[LANGUAGE_NONE][0]['value'] = $spotify_object->id;
+    $node->field_spotify_name[LANGUAGE_NONE][0]['value'] = $spotify_object->name;
+  }
+
+  if($album_genre){
+    $index = 0;
+    foreach($album_genre as $genre){
+      $tax = taxonomy_get_term_by_name($genre->name);
+      $tax = array_values($tax);
+      $node->field_genre[LANGUAGE_NONE][$index++]['tid'] = $tax[0]->tid;
+    }
+  }
+
+  $node->language = 'is';
+  $node->uid = 1;
+  node_save($node);
+
+  return $node;
+}
+
+function ismus_data_migration_add_track($track, $spotify_object){
+  $node = new stdClass();
+  $node->title = $track->name;
+  $node->type = 'work';
+  node_object_prepare($node);
+
+  if(isset($track->ischecked)){
+    $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = $track->ischecked;
+  }
+  if(isset($track->duration)){
+    $time = strtotime("1970-01-01 " . $track->duration);
+    $node->field_duration[LANGUAGE_NONE][0]['value'] = $time;
+  }
+  if(isset($track->overview)){
+    $node->field_description[LANGUAGE_NONE][0]['value'] = $track->overview;
+  }
+  if(isset($track->ischecked)){
+    $node->field_is_checked_by_staff[LANGUAGE_NONE][0]['value'] = $track->ischecked;
+  }
+  $node->field_performing_artist[LANGUAGE_NONE][0]['target_id'] = $artist = _ismus_data_migration_search_artist_by_old_id($track->artist_id)->nid;
+
+  if(isset($spotify_object)){
+    $node->field_spotify_id[LANGUAGE_NONE][0]['value'] = $spotify_object->id;
+    $node->field_spotify_name[LANGUAGE_NONE][0]['value'] = $spotify_object->name;
+    $node->field_spotify_preview_url[LANGUAGE_NONE][0]['value'] = $spotify_object->preview;
+
+    if(!isset($node->field_duration[LANGUAGE_NONE])){
+      if($spotify_object->duration > 0){
+        $time = (int)$spotify_object->duration / 1000;
+        $node->field_duration[LANGUAGE_NONE][0]['value'] = $time;
+      }
+    }
+  }
+
+  //This ID is always set, therefor we don't have to wrap it.
+  $node->field_original_id[LANGUAGE_NONE][0]['value'] = $track->id;
+  $node->field_work_type[LANGUAGE_NONE][0]['tid'] = 153;
+
+  $scald_atom = null;
+
+  if(isset($spotify_object)){
+    $node->field_spotify_track_id[LANGUAGE_NONE][0]['value'] = $spotify_object->id;
+    $node->field_spotify_track_name[LANGUAGE_NONE][0]['value'] = $spotify_object->name;
+    $node->field_spotify_song_preview_url[LANGUAGE_NONE][0]['value'] = $spotify_object->preview;
+  }
+
+  $node->language = 'is';
+  $node->uid = 1;
+  $node = node_save($node);
+  return $node;
+}
+
+/**
+ * Creates a publisher.  Since all the extra information we store in the content
+ * type is not available in the old database, we don't try to add the extra
+ * fields.  We do check though if the publisher exists in the database, and
+ * if it does, we return it.
+ *
+ * @param $old_publisher
+ * @return \stdClass|void
+ * @throws \Exception
+ */
+function ismus_data_migration_add_publisher($owr){
+  $old_publisher = _ismus_data_migration_fetch_publisher($owr->publisher_id);
+  $publisher = _ismus_data_migration_find_publisher_by_old_id($old_publisher['id']);
+  if($publisher){
+    return $publisher;
+  }
+
+  $node = new stdClass();
+  $node->title = $old_publisher['name'];
+  $node->type = 'publisher';
+  node_object_prepare($node);
+
+  $node->field_original_id[LANGUAGE_NONE][0]['value'] = $old_publisher['id'];
+  $node->language = 'is';
+  $node->uid = 1;
+  node_save($node);
+
+  return $node;
+}
+
+/**
+ * Creates an scald atom and downloads an image from url.
+ * @param $image_url
+ * @param $filename
+ * @return bool|null
+ */
+function _ismus_data_migration_create_scald_image($image_url, $filename){
+  $document = null;
+  $document = file_get_contents( $image_url );
+  $file = file_save_data( $document, 'public://atoms/images/' . $filename, FILE_EXISTS_RENAME );
+
+  if( $document ){
+    $atom = new stdClass();
+
+    $atom->type = 'image';
+    $atom->provider = 'scald_image';
+    //Gefið er að (admin) sé sá sem er að þessu, en auðvitað má setja inn hvaða
+    //valid uid sem er.
+    $atom->publisher = 1;
+    $atom->language = 'und';
+    //Actions breytan hefur default gildið 5, sem er Fetch og View
+    $atom->actions = 5;
+    $atom->title = ucwords(str_replace('_',' ',basename($file->filename)));
+    $atom->base_id = $file->fid;
+
+    //Thumbnail
+    $atom->scald_thumbnail['und'][0]['fid'] = $file->fid;
+    $atom->scald_thumbnail['und'][0]['display'] = '1';
+    $atom->scald_thumbnail['und'][0]['width'] = $file->metadata['width'];
+    $atom->scald_thumbnail['und'][0]['height'] = $file->metadata['height'];
+    $atom->scald_thumbnail['und'][0]['description'] = '';
+    $atom->scald_thumbnail['und'][0]['upload_button'] = 'Upload';
+    $atom->scald_thumbnail['und'][0]['remove_button'] = 'Remove';
+    $atom->scald_thumbnail['und'][0]['upload'] = '';
+    $atom->scald_thumbnail['und'][0]['alt'] = $atom->title;
+    $atom->scald_thumbnail['und'][0]['title'] = $atom->title;
+
+    //Vistar atómið í Drupal og skilar þér til baka Scald ID-inu
+    return scald_atom_save($atom);
+  }
+  return null;
+}
+
+function ismus_data_migration_add_publishing_data($work_id, $album){
+  $old_work_release = _ismus_data_migration_fetch_work_release($work_id);
+
+  foreach($old_work_release as $owr){
+    $publisher = ismus_data_migration_add_publisher($owr);
+
+    $relation = relation_create('er_gefin_ut_af', [
+      ['entity_type' => 'node', 'entity_id' => $album->nid],
+      ['entity_type' => 'node', 'entity_id' => $publisher->nid]
+    ], null);
+    $relation_id = relation_save($relation);
+    $relation = relation_load($relation_id);
+    if(isset($owr->date_published)){
+      $relation->field_from[LANGUAGE_NONE][0]['value'] = strtotime($owr->date_published);
+      $relation->field_from[LANGUAGE_NONE][0]['timezone'] = 'Atlantic/Reykjavik';
+      $relation->field_from[LANGUAGE_NONE][0]['timezone_db'] = 'Atlantic/Reykjavik';
+      $relation->field_from[LANGUAGE_NONE][0]['date_type'] = 'datestamp';
+    }
+    if(isset($owr->production_number)){
+      $relation->field_production_number[LANGUAGE_NONE][0]['value'] = $owr->production_number;
+    }
+
+    if(isset($owr->media_type_id)){
+      $taxonomy = taxonomy_get_term_by_name($owr->media_type_name, 'media_type');
+      $relation->field_media_type[LANGUAGE_NONE][0]['target_id'] = $taxonomy->tid;
+    }
+
+    relation_save($relation);
+  }
+}
+
+function _ismus_data_migration_create_participation_array(){
+  $participations =_ismus_data_migration_fetch_all_participations();
+  $arr = [];
+
+  foreach($participations as $participation){
+     $arr[$participation->artist_id][$participation->work_id] = $participation->work_id;
+  }
+
+  return $arr;
+}
+
+function _ismus_data_migration_find_album_genre($work_id){
+  $old_genre = _ismus_data_migration_fetch_work_genre($work_id);
+  return (sizeof($old_genre) > 0)
+    ? $old_genre : null;
+}
+
+function _ismus_data_migration_find_artist_genre($artist_id){
+  $old_genre = _ismus_data_migration_fetch_artist_genre($artist_id);
+  return (sizeof($old_genre) > 0)
+    ? $old_genre : null;
+}
+
+function _ismus_data_migration_search_artist_by_old_id($old_id){
+  $article = null;
+  $articleQuery = new EntityFieldQuery;
+  $result = $articleQuery
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'artist')
+    ->propertyCondition('status', 1, '=')
+    ->fieldCondition('field_original_id',  'value', $old_id, '=' )
+    ->propertyOrderBy( 'created', 'DESC' )
+    ->execute();
+
+  if (!empty($result['node'])) {
+    $article = entity_load('node', array_keys($result['node']));
+    $article = array_values( $article );
+    $article = $article[0];
+  }
+
+  return $article;
+}
+
+function _ismus_data_migration_find_publisher_by_old_id($old_id){
+  $article = null;
+  $articleQuery = new EntityFieldQuery;
+  $result = $articleQuery
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'publisher')
+    ->propertyCondition('status', 1, '=')
+    ->fieldCondition('field_original_id',  'value', $old_id, '=' )
+    ->propertyOrderBy( 'created', 'DESC' )
+    ->execute();
+
+  if (!empty($result['node'])) {
+    $article = entity_load('node', array_keys($result['node']));
+    $article = array_values( $article );
+    $article = $article[0];
+  }
+
+  return $article;
+}
+
+function _ismus_data_migration_find_publisher($publisher_id){
+  return db_query(
+    "SELECT id, name
+      FROM islensktonlist.ismus_Publisher
+      WHERE id = {$publisher_id}"
+  )->fetchAssoc();
+}
+
+function _ismus_data_migration_find_artist_by_old_id($old_id){
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'artist')
+    ->propertyCondition('status', 1, '=')
+    ->fieldCondition('field_original_id', 'value', $old_id, '=')
+    ->execute();
+
+  if (!empty($result['node'])) {
+    $results = entity_load('node', array_keys($result['node']));
+    $results = array_values($results);
+    $results = $results[0];
+  }
+
+  return $results;
+}
+
+function _ismus_data_migration_find_work_by_old_id($old_id){
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'work')
+    ->propertyCondition('status', 1, '=')
+    ->fieldCondition('field_original_id', 'value', $old_id, '=')
+    ->execute();
+
+  if (!empty($result['node'])) {
+    $results = entity_load('node', array_keys($result['node']));
+    $results = array_values($results);
+    $results = $results[0];
+  }
+
+  return $results;
+}
+
+/**
+ * Fetch statements
+ *
+ * Some of them have a where statement where we're fetching everything abobe
+ * a certain number.  That's because the database consists of two entries, one
+ * was a big import from an old access database, the other is entered by me.
+ *
+ * Since the data integrity is not 100% from the old database, I didn't import
+ * it blindly into the database, but I am going to build a query tool to be able
+ * to import the data one by one, when I have the information in front of me.
+ */
+
+function _ismus_data_migration_fetch_all_roles_and_rolegroups(){
+  return db_query(
+    "SELECT r.rolegroup_id, rg.name as rolegroup_name, r.name as role_name, r.artisttype
+      FROM islensktonlist.ismus_Role r
+      INNER JOIN islensktonlist.ismus_RoleGroup rg ON r.rolegroup_id = rg.id"
+  );
+}
+
+function _ismus_data_migration_fetch_all_memberships_with_roles_and_rolegroups(){
+  return db_query(
+    "SELECT mr.membership_id, a.`name` as artist, g.`name` as `group`,
+      mr.role_id, r.name, r.artisttype, r.rolegroup_id,
+      rg.name
+      FROM islensktonlist.ismus_MembershipRole mr
+      LEFT OUTER JOIN ismus_Membership m ON mr.membership_id = m.id
+      LEFT OUTER JOIN ismus_Artist a ON m.artist_id = a.id
+      LEFT OUTER JOIN ismus_Artist g on m.group_id = g.id
+      LEFT OUTER JOIN ismus_Role r on mr.role_id = r.id
+      LEFT OUTER JOIN ismus_RoleGroup rg on r.rolegroup_id = rg.id"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_appearances(){
+  return db_query(
+    "SELECT a.id,
+      a.work_id, w.name as work_name,
+      a.item_id, i.name as item_name,
+      a.rank, a.appearance_type_id
+      FROM islensktonlist.ismus_Appearance a
+      INNER JOIN ismus_Work w on a.work_id = w.id
+      INNER JOIN ismus_Work i on a.item_id = i.id
+      WHERE a.id > 16670"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_old_artists(){
+  return db_query(
+    "SELECT * FROM ismus_Artist
+     WHERE id > 8000"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_old_artist_by_id($artist_id){
+  return db_query(
+    "SELECT * FROM ismus_Artist
+    WHERE id = {$artist_id};"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_old_work(){
+  return db_query(
+    "SELECT * FROM ismus_Work
+     WHERE id > 40000"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_old_work_by_id($work_id){
+  return db_query(
+    "SELECT * FROM ismus_Work
+    WHERE id = {$work_id};"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_search_artist($artist_id){
+  return db_query(
+    "SELECT * FROM ismus_Artist
+     WHERE id = :id", array('id' => $artist_id)
+  )->fetchAssoc();
+}
+
+function _ismus_data_migration_fetch_all_artist_memberships(){
+  return db_query(
+    "SELECT * FROM ismus_Membership"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_artist_membership_roles($artist_id, $group_id){
+  return db_query(
+    "SELECT mr.id,
+      mr.membership_id, m.artist_id, m.group_id,
+      mr.role_id, r.name as role_name, r.artisttype,
+      mr.rank
+      FROM islensktonlist.ismus_MembershipRole mr
+      INNER JOIN ismus_Membership m ON mr.membership_id = m.id
+      INNER JOIN ismus_Role r ON mr.role_id = r.id
+      WHERE artist_id = {$artist_id} and group_id = {$group_id}"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_work_release($work_id){
+  return db_query(
+    "SELECT wr.id, wr.work_id,
+      wr.publisher_id, p.name as publisher_name,
+      wr.production_number, wr.date_published,
+      wr.media_type_id, mt.name as media_type_name,
+      wr.info
+      FROM islensktonlist.ismus_WorkRelease wr
+      LEFT OUTER JOIN ismus_Publisher p ON wr.publisher_id = p.id
+      LEFT OUTER JOIN ismus_MediaType mt ON wr.media_type_id = mt.id
+      WHERE wr.work_id = {$work_id}"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_publisher($publisher_id){
+  return db_query(
+    "SELECT id, name
+      FROM islensktonlist.ismus_Publisher
+      WHERE id = {$publisher_id}"
+  )->fetchAssoc();
+}
+
+function _ismus_data_migration_fetch_work_genre($work_id){
+  return db_query(
+    "SELECT wg.id, wg.work_id, wg.genre_id, g.name
+      FROM islensktonlist.ismus_WorkGenre wg
+      INNER JOIN ismus_Genre g ON wg.genre_id = g.id
+      WHERE wg.work_id = {$work_id}"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_artist_genre($artist_id){
+  return db_query(
+    "SELECT wg.id, wg.artist_id, wg.genre_id, g.name
+      FROM islensktonlist.ismus_ArtistGenre wg
+      INNER JOIN ismus_Genre g ON wg.genre_id = g.id
+      WHERE wg.artist_id = {$artist_id}"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_participations(){
+  return db_query(
+    "SELECT p.id, p.artist_id, p.work_id, p.role_id, r.name as role_name
+      FROM islensktonlist.ismus_Participation p
+      INNER JOIN ismus_Role r on p.role_id = r.id
+      WHERE work_id IS NOT NULL;"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_find_participation_by_artist_id_and_work_id($artist_id, $work_id){
+  return db_query(
+    "SELECT p.id, p.artist_id, p.work_id, p.role_id, r.name as role_name
+      FROM islensktonlist.ismus_Participation p
+      INNER JOIN ismus_Role r on p.role_id = r.id
+      WHERE p.artist_id = {$artist_id}  AND p.work_id = {$work_id}"
+  )->fetchAllAssoc("id");
+}
+
+function _ismus_data_migration_fetch_all_artists() {
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'artist')
+    ->propertyCondition('status', 1, '=')
+    ->execute();
+
+  $results = entity_load('node', array_keys($result['node']));
+
+  return $results;
+}
+
+function _ismus_data_migration_fetch_all_publishers() {
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'publisher')
+    ->propertyCondition('status', 1, '=')
+    ->execute();
+
+  $results = entity_load('node', array_keys($result['node']));
+
+  return $results;
+}
+
+function _ismus_data_migration_fetch_all_published_relations() {
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'er_gefin_ut_af')
+    ->execute();
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}
+
+function ismus_data_migration_fetch_all_band_member_relations() {
+  $results = null;
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'relation')
+    ->propertyCondition('relation_type', 'a_er_medlimur_i_b')
+    ->execute();
+
+  $results = entity_load('relation', array_keys($result['relation']));
+
+  return $results;
+}

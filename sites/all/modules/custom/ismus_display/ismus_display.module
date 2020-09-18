@@ -1,0 +1,2068 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: drupalviking
+ * Date: 02/10/16
+ * Time: 10:13
+ */
+
+/**
+ * Implements hook_block_info()
+ */
+function ismus_display_block_info() {
+  $blocks['artist_member'] = [
+    'info' => t('Artist is a member of a group and group has members'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['album_songs'] = [
+    'info' => t('Album has songs and song belongs to a album'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['performing_musician_song'] = [
+    'info' => t('The performers that play the song'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['performing_author_song'] = [
+    'info' => t('The performers that wrote the song'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['performing_recording_song'] = [
+    'info' => t('The performers that recorded the song'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['performing_technician_song'] = [
+    'info' => t('The performers that work with the technical aspect of the song'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['artist_work'] = [
+    'info' => t('The artists that performes the work'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_artist'] = [
+    'info' => t('The work that the artist has performed'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_artist_performer'] = [
+    'info' => t('The work that the artist has performed as performer'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_artist_author'] = [
+    'info' => t('The work that the artist has written as an author'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_artist_recording'] = [
+    'info' => t('The work that the artist has worked on as a recording job'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_artist_tech'] = [
+    'info' => t('The work that the artist has performed as a technician'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['decendant_of_another_work'] = [
+    'info' => t('Displays if the work is descendant of another work, or if the work has any decendants'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['publisher_of_work'] = [
+    'info' => t('Displays the publisher of a work'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['all_work_of_artist'] = [
+    'info' => t('Displays all work that is associated with an artist'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['all_albums_of_artist'] = [
+    'info' => t('Displays all albums that is associated with an artist'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['all_songs_of_artist'] = [
+    'info' => t('Displays all songs that is associated with an artist'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['artist_profiles_from_music_providers'] = [
+    'info' => t('Displays (if any) links to the artists profiles for various music providers'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['work_profiles_from_music_providers'] = [
+    'info' => t('Displays (if any) links to the work profiles for various music providers'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['albums_published_by_publisher'] = [
+    'info' => t('Displays all albums, published by the publisher'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['instruments_used_by_artist'] = [
+    'info' => t('Displays all instruments, an artist plays on'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  $blocks['artist_roles'] = [
+    'info' => t('Displays all songs and all musicians that play that certain instrument'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  return $blocks;
+}
+
+function ismus_display_theme(){
+  return [
+    'album_songs' => [
+      'template' => 'templates/table-title',
+      'variables' => ['title'=> "", 'table' => ""]
+    ],
+  ];
+}
+
+/**
+ * Implements hook_block_view()
+ */
+function ismus_display_block_view($delta = ''){
+  $markup = '';
+  if($delta == 'artist_member'){
+    $markup = _ismus_display_create_artist_member_markup();
+  }
+  elseif($delta == 'album_songs'){
+    $markup = _ismus_display_create_songs_and_albums_markup();
+  }
+  elseif($delta == 'performing_musician_song'){
+    $markup = _ismus_display_create_musician_participation_as_musician_in_work_markup();
+  }
+  elseif($delta == 'performing_author_song'){
+    $markup = _ismus_display_create_musician_participation_as_author_in_work_markup();
+  }
+  elseif($delta == 'performing_recording_song'){
+    $markup = _ismus_display_create_musician_participation_as_recording_in_work_markup();
+  }
+  elseif($delta == 'performing_technician_song'){
+    $markup = _ismus_display_create_musician_participation_as_tech_in_work_markup();
+  }
+  elseif($delta == 'artist_work'){
+    $markup = _ismus_display_create_artist_work_markup();
+  }
+
+  elseif($delta == 'decendant_of_another_work'){
+    $markup = _ismus_display_decendancy_of_work_markup();
+  }
+  elseif($delta == 'publisher_of_work'){
+    $markup = _ismus_display_publisher_of_work_markup();
+  }
+  elseif($delta == 'work_artist'){
+    $markup = _ismus_display_create_work_participation_for_musician_markup();
+  }
+  elseif($delta == 'work_artist_performer'){
+    $markup = _ismus_display_create_work_participation_for_musician_as_musician_markup();
+  }
+  elseif($delta == 'work_artist_author'){
+    $markup = _ismus_display_create_work_participation_for_musician_as_author_markup();
+  }
+  elseif($delta == 'work_artist_recording'){
+    $markup = _ismus_display_create_work_participation_for_musician_as_recording_markup();
+  }
+  elseif($delta == 'work_artist_tech'){
+    $markup = _ismus_display_create_work_participation_for_musician_as_tech_markup();
+  }
+  elseif($delta == 'all_work_of_artist'){
+    $markup = _ismus_display_all_work_belongs_to_artist();
+  }
+  elseif($delta == 'all_albums_of_artist'){
+    $markup = _ismus_display_all_albums_belongs_to_artist();
+  }
+  elseif($delta == 'all_songs_of_artist'){
+    $markup = _ismus_display_all_songs_belongs_to_artist();
+  }
+  elseif($delta == 'artist_profiles_from_music_providers') {
+    $markup = _ismus_display_artist_profile_links();
+  }
+  elseif($delta == 'work_profiles_from_music_providers') {
+    $markup = _ismus_display_work_profile_links();
+  }
+  elseif($delta == 'albums_published_by_publisher') {
+    $markup = _ismus_display_albums_published_by_publisher();
+  }
+  elseif($delta == 'instruments_used_by_artist') {
+    $markup = _ismus_display_instruments_used_by_artist();
+  }
+  elseif($delta == 'artist_roles') {
+    $markup = _ismus_display_artist_roles();
+  }
+
+  $block['content'] = $markup;
+
+  return $block;
+}
+
+/**
+ * HELPER FUNCTIONS
+ */
+
+/**
+ * ARTIST
+ */
+
+/**
+ * Creates the markup for the display block which displays Artist membership.
+ * Artist can can be a band and therefor both have members and also be a member
+ * of a band.  It can also be a person which can a member of a band.
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_artist_member_markup($artist_obj = null){
+  if(!$artist_obj) {
+    $artist_obj = menu_get_object();
+    if(!isset($artist_obj)){
+      return null;
+    }
+  }
+
+  $artist_relations = ismus_api_get_all_band_relations_for_artist($artist_obj->nid);
+  $bands = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $header = ['Hljómsveit', 'Gekk í hljómsveitina', 'Hætti', 'Hljóðfæri', 'Upprunalegur?'];
+  if(user_access('Update Íslensk tónlist content')) {
+    $header[] = 'Aðgerðir';
+  }
+  $rows_belongs_to = [];
+  $rows_contains = [];
+  $markup = "";
+  $nei_ja = ['Nei', 'Já'];
+  if(isset($bands['belongs_to'])){
+    foreach($bands['belongs_to'] as $band){
+      $instruments = [];
+      if(isset($band['relation']->field_role[LANGUAGE_NONE])) {
+        foreach($band['relation']->field_role[LANGUAGE_NONE] as $role) {
+          $tax = taxonomy_term_load($role['tid']);
+          $instrument_link = l($tax->name, 'taxonomy/term/' . $tax->tid);
+          $instruments[] = $instrument_link;
+        }
+      }
+
+      $line_array = [
+        l($band['node']->title, 'node/' . $band['node']->nid),
+        (isset($band['relation']->field_from[LANGUAGE_NONE]))
+          ? ismus_api_process_date_string($band['relation']->field_from[LANGUAGE_NONE][0]['value'])
+          : '',
+        (isset($band['relation']->field_to[LANGUAGE_NONE][0]))
+          ? ismus_api_process_date_string($band['relation']->field_to[LANGUAGE_NONE][0]['value'])
+          : '',
+        (sizeof($instruments) > 0)
+          ? implode(", ", $instruments)
+          : '',
+        $nei_ja[$band['relation']->field_is_original[LANGUAGE_NONE][0]['value']],
+      ];
+
+      if(user_access('Update Íslensk tónlist content')) {
+        $relation_id = $band['relation']->rid;
+        $line_array[] = l('Breyta', 'relation/' . $relation_id . '/edit');
+      }
+
+      $rows_belongs_to[] = $line_array;
+    }
+  }
+
+  if(isset($bands['contains'])){
+    foreach($bands['contains'] as $band){
+      $instruments = [];
+      if(isset($band['relation']->field_role[LANGUAGE_NONE])) {
+        foreach($band['relation']->field_role[LANGUAGE_NONE] as $role) {
+          $tax = taxonomy_term_load($role['tid']);
+          $instrument_link = l($tax->name, 'taxonomy/term/' . $tax->tid);
+          $instruments[] = $instrument_link;
+        }
+      }
+
+      $line_array = [
+        l($band['node']->title, 'node/' . $band['node']->nid),
+        (isset($band['relation']->field_from[LANGUAGE_NONE]))
+          ? ismus_api_process_date_string($band['relation']->field_from[LANGUAGE_NONE][0]['value'])
+          : '',
+        (isset($band['relation']->field_to[LANGUAGE_NONE][0]))
+          ? ismus_api_process_date_string($band['relation']->field_to[LANGUAGE_NONE][0]['value'])
+          : '',
+        (sizeof($instruments) > 0)
+          ? implode(", ", $instruments)
+          : '',
+        $nei_ja[$band['relation']->field_is_original[LANGUAGE_NONE][0]['value']],
+      ];
+      if(user_access('Update Íslensk tónlist content')) {
+        $relation_id = $band['relation']->rid;
+        $line_array[] = _ismus_create_admin_relation_links($relation_id);
+      }
+
+      $rows_contains[] = $line_array;
+    }
+  }
+
+  if(sizeof($rows_belongs_to) > 0){
+    $markup .= '<h2>Listamaðurinn tilheyrir eftirfarandi hljómsveitum</h2>';
+    $markup .= theme('table', array('header' => $header, 'rows' => $rows_belongs_to));
+  }
+
+  if(sizeof($rows_contains) > 0){
+    $markup .= '<h2>Hljómsveitin inniheldur eftirfarandi meðlimi</h2>';
+    $markup .= theme('table', array('header' => $header, 'rows' => $rows_contains));
+  }
+
+  if(isset($artist_obj->field_artist_type[LANGUAGE_NONE])) {
+    if($artist_obj->field_artist_type[LANGUAGE_NONE][0]['tid'] == EINSTAKLINGUR) {
+      $markup .= '<p><a href="/listamadur/baeta-tonlistarmanni-i-hljomsveit/listamadur/' . $artist_obj->nid . '">Bæta listamanni í hljómsveit</a></p>';
+    }
+    else {
+      $markup .= '<p><a href="/listamadur/baeta-tonlistarmanni-i-hljomsveit/hljomsveit/' . $artist_obj->nid . '">Bæta við listamanni í hljómsveitina</a></p>';
+    }
+  }
+
+  return $markup;
+}
+
+function _ismus_display_artist_profile_links($artist_obj = null) {
+  $links_array = null;
+  $list_string = "";
+
+  if(!$artist_obj) {
+    $artist_obj = menu_get_object();
+    if(!isset($artist_obj)){
+      return null;
+    }
+  }
+
+  if(isset($artist_obj->field_spotify_artist_id[LANGUAGE_NONE])) {
+    $links_array[] = l('Prófíll á Spotify',
+      'https://open.spotify.com/artist/' .
+      $artist_obj->field_spotify_artist_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if(isset($artist_obj->field_discogs_artist_id[LANGUAGE_NONE])) {
+    $links_array[] = l('Prófíll á Discogs',
+      'https://www.discogs.com/artist/' .
+      $artist_obj->field_discogs_artist_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if(isset($artist_obj->field_musicbrainz_artist_id[LANGUAGE_NONE])) {
+    $links_array[] = l('Prófíll á Musicbrainz',
+      'https://musicbrainz.org/artist/' .
+      $artist_obj->field_musicbrainz_artist_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if($links_array) {
+    $list_string = theme_item_list([
+      'items' => $links_array,
+      'title' => null,
+      'type' => 'ul',
+      'attributes' => ['id' => 'music-provider-profiles']
+    ]);
+  }
+
+  return $list_string;
+}
+
+/**
+ * WORK
+ */
+
+/**
+ * Creates the markup for the display block which displays Work relations.
+ * Work can be a song, album or a series.
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_songs_and_albums_markup(){
+  $work_obj = menu_get_object();
+  $markup = "";
+  if(!isset($work_obj)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_appearance_relations_for_work($work_obj->nid);
+  $works = ismus_api_load_entities_from_relations($work_relations, $work_obj->nid);
+  $rows_belongs_to = [];
+  $rows_contains = [];
+  $header = ['Lag', 'Röð á diski'];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $line_array = [
+        l($work['node']->title, 'node/' . $work['node']->nid),
+      ];
+      if(user_access('Update Íslensk tónlist content')) {
+        $relation_id = $work['relation']->rid;
+        $line_array[] = _ismus_create_admin_relation_links($relation_id);
+      }
+      $rows_belongs_to[] = $line_array;
+    }
+  }
+
+  if(isset($works['contains'])){
+    foreach($works['contains'] as $work){
+      $line_array = [
+        l($work['node']->title, 'node/' . $work['node']->nid),
+        $work['relation']->field_rank[LANGUAGE_NONE][0]['value']
+      ];
+
+      if(user_access('Update Íslensk tónlist content')) {
+        $relation_id = $work['relation']->rid;
+        $line_array[] = _ismus_create_admin_relation_links($relation_id);
+      }
+
+      $rows_contains[$work['relation']->field_rank[LANGUAGE_NONE][0]['value']] = $line_array;
+    }
+  }
+  //Took this out and replaced by variable passing to the theme function
+  if(sizeof($rows_belongs_to) > 0){
+    $table = theme('table', array('rows' => $rows_belongs_to));
+    $markup .= theme('album_songs', ['title' => 'Lagið kemur fyrir á eftirfarandi hljómplötum', 'table' => $table]);
+  }
+  if(sizeof($rows_contains) > 0){
+    if(user_access('Update Íslensk tónlist content')) {
+      $header[] = 'Aðgerðir';
+    }
+    ksort($rows_contains);
+    $markup .= '<h2>Hljómplatan inniheldur eftirfarandi lög</h2>';
+    $markup .= theme('table', ['header' => $header, 'rows' => $rows_contains]);
+  }
+
+  return $markup;
+}
+
+function _ismus_display_work_profile_links($work_obj = null) {
+  $links_array = null;
+  $list_string = "";
+
+  if(!$work_obj) {
+    $work_obj = menu_get_object();
+    if(!isset($work_obj)){
+      return null;
+    }
+  }
+
+  if(isset($work_obj->field_spotify_id[LANGUAGE_NONE])) {
+    $work_type_string = ($work_obj->field_work_type[LANGUAGE_NONE][0]['tid'] == HLJOMPLATA)
+      ? 'albums' : 'track';
+    $links_array[] = l('Prófíll á Spotify',
+      'https://open.spotify.com/' . $work_type_string . '/' .
+      $work_obj->field_spotify_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if(isset($work_obj->field_discogs_id[LANGUAGE_NONE])) {
+    $links_array[] = l('Prófíll á Discogs',
+      'https://www.discogs.com/release/' .
+      $work_obj->field_discogs_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if(isset($work_obj->field_musicbrainz_id[LANGUAGE_NONE])) {
+    $links_array[] = l('Prófíll á Musicbrainz',
+      'https://musicbrainz.org/artist/' .
+      $work_obj->field_musicbrainz_id[LANGUAGE_NONE][0]['value'],
+      ['attributes' => ['target' => '_blank']]
+    );
+  }
+  if($links_array) {
+    $list_string = theme_item_list([
+      'items' => $links_array,
+      'title' => null,
+      'type' => 'ul',
+      'attributes' => ['id' => 'music-provider-profiles']
+    ]);
+  }
+
+  return $list_string;
+}
+
+/**
+ * Displays all the musicians that play in a particular work
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_musician_participation_as_musician_in_work_markup(){
+  $work_obj = menu_get_object();
+  $markup = "";
+  if(!isset($work_obj)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_musician_relations_for_work($work_obj->nid);
+  $musicians = ismus_api_load_entities_from_relations($work_relations, $work_obj->nid);
+  $musician_rows = [];
+
+  if(isset($musicians['contains'])){
+    foreach($musicians['contains'] as $musician){
+      $tax_author_array = [];
+      $tax_recording_array = [];
+      $tax_technical_array = [];
+      $tax_musician_array = [];
+      foreach($musician['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        $tid = (isset($parents[1])) ? $parents[1]->tid : $parents[0]->tid;
+        switch($tid){
+          case 26:
+            $tax_author_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 44:
+            $tax_recording_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 35:
+            $tax_technical_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          default:
+            $tax_musician_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $musician_title = $musician['node']->title;
+      if(sizeof($tax_musician_array) > 0){
+        $musician_rows[$musician_title] = [
+          l($musician_title, 'node/' . $musician['node']->nid),
+          implode(',', $tax_musician_array),
+        ];
+
+        if(user_access('Update Íslensk tónlist content')) {
+          $relation_id = $musician['relation']->rid;
+          $musician_rows[$musician_title][] = _ismus_create_admin_relation_links($relation_id);
+        }
+      }
+    }
+  }
+
+  if(sizeof($musician_rows) > 0){
+    ksort($musician_rows);
+    $markup .= '<h2>Hljóðfæraleikur</h2>';
+    $markup .= theme('table', array('rows' => $musician_rows));
+  }
+
+  return $markup;
+}
+
+/**
+ * Displays all the musicians that play in a particular work
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_musician_participation_as_author_in_work_markup(){
+  $work_obj = menu_get_object();
+  $markup = "";
+  if(!isset($work_obj)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_musician_relations_for_work($work_obj->nid);
+  $musicians = ismus_api_load_entities_from_relations($work_relations, $work_obj->nid);
+  $author_rows = [];
+
+  if(isset($musicians['contains'])){
+    foreach($musicians['contains'] as $musician){
+      $tax_author_array = [];
+      foreach($musician['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        $tid = (isset($parents[1])) ? $parents[1]->tid : $parents[0]->tid;
+        switch($tid){
+          case 26:
+            $tax_author_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $musician_title = $musician['node']->title;
+      if(sizeof($tax_author_array) > 0){
+        $author_rows[$musician_title] = [
+          l($musician_title, 'node/' . $musician['node']->nid),
+          implode(',', $tax_author_array),
+        ];
+
+        if(user_access('Update Íslensk tónlist content')) {
+          $relation_id = $musician['relation']->rid;
+          $author_rows[$musician_title][] = _ismus_create_admin_relation_links($relation_id);
+        }
+      }
+    }
+  }
+
+  if(sizeof($author_rows) > 0){
+    ksort($author_rows);
+    $markup .= '<h2>Höfundar</h2>';
+    $markup .= theme('table', array('rows' => $author_rows));
+  }
+
+  return $markup;
+}
+
+/**
+ * Displays all the musicians that play in a particular work
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_musician_participation_as_recording_in_work_markup(){
+  $work_obj = menu_get_object();
+  $markup = "";
+  if(!isset($work_obj)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_musician_relations_for_work($work_obj->nid);
+  $musicians = ismus_api_load_entities_from_relations($work_relations, $work_obj->nid);
+  $recording_rows = [];
+
+  if(isset($musicians['contains'])){
+    foreach($musicians['contains'] as $musician){
+      $tax_recording_array = [];
+      foreach($musician['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        $tid = (isset($parents[1])) ? $parents[1]->tid : $parents[0]->tid;
+        switch($tid){
+          case 44:
+            $tax_recording_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $musician_title = $musician['node']->title;
+      if(sizeof($tax_recording_array) > 0){
+        $recording_rows[$musician_title] = [
+          l($musician_title, 'node/' . $musician['node']->nid),
+          implode(',', $tax_recording_array),
+        ];
+
+        if(user_access('Update Íslensk tónlist content')) {
+          $relation_id = $musician['relation']->rid;
+          $recording_rows[$musician_title][] = _ismus_create_admin_relation_links($relation_id);
+        }
+      }
+    }
+  }
+
+  if(sizeof($recording_rows) > 0){
+    ksort($recording_rows);
+    $markup .= '<h2>Upptaka</h2>';
+    $markup .= theme('table', array('rows' => $recording_rows));
+  }
+
+  return $markup;
+}
+
+/**
+ * Displays all the musicians that play in a particular work
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_musician_participation_as_tech_in_work_markup(){
+  $work_obj = menu_get_object();
+  $markup = "";
+  if(!isset($work_obj)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_musician_relations_for_work($work_obj->nid);
+  $musicians = ismus_api_load_entities_from_relations($work_relations, $work_obj->nid);
+  $techincal_rows = [];
+
+  if(isset($musicians['contains'])){
+    foreach($musicians['contains'] as $musician){
+      $tax_technical_array = [];
+      foreach($musician['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        $tid = (isset($parents[1])) ? $parents[1]->tid : $parents[0]->tid;
+        switch($tid){
+          case 35:
+            $tax_technical_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $musician_title = $musician['node']->title;
+      if(sizeof($tax_technical_array) > 0){
+        $techincal_rows[$musician_title] = [
+          l($musician_title, 'node/' . $musician['node']->nid),
+          implode(',', $tax_technical_array),
+        ];
+
+        if(user_access('Update Íslensk tónlist content')) {
+          $relation_id = $musician['relation']->rid;
+          $techincal_rows[$musician_title][] = _ismus_create_admin_relation_links($relation_id);
+        }
+      }
+    }
+  }
+
+  if(sizeof($techincal_rows) > 0){
+    ksort($technical_rows);
+    $markup .= '<h2>Tæknivinnsla</h2>';
+    $markup .= theme('table', array('rows' => $techincal_rows));
+  }
+
+  return $markup;
+}
+
+/**
+ * Displays all the musicians that play in a particular work
+ *
+ * @return string|void
+ * @throws \Exception
+ */
+function _ismus_display_create_work_participation_for_musician_markup(){
+  $artist_obj = menu_get_object();
+  $markup = "";
+  if(!isset($artist_obj)){
+    return null;
+  }
+  $artist_relations = ismus_api_get_all_work_relations_for_artist($artist_obj->nid);
+  $works = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $musician_rows = [];
+  $author_rows = [];
+  $recording_rows = [];
+  $technical_rows = [];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $tax_author_array = [];
+      $tax_recording_array = [];
+      $tax_technical_array = [];
+      $tax_musician_array = [];
+      foreach($work['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        switch($parents[1]->tid){
+          case 26:
+            $tax_author_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 44:
+            $tax_recording_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 35:
+            $tax_technical_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          default:
+            $tax_musician_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $album_relations = ismus_api_get_album_for_song($work['node']->nid);
+      $albums = [];
+      foreach($album_relations as $album) {
+        $album_node = node_load($album->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $performer_relation = array_values(ismus_api_get_performer_of_work($album_node->nid))[0];
+        $performer_node = node_load($performer_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $album_cover = scald_atom_load($album_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+        $album_url = image_style_url('thumbnail', $album_cover->file_source);
+        $string = "<img src='{$album_url}' />";
+        $string .= "<p>" . l($album_node->title, "node/" . $album_node->nid) . " - " . l($performer_node->title, 'node/' . $performer_node->nid) . "</p>";
+        $albums[] = $string;
+      }
+      $work_title = $work['node']->title;
+      if(sizeof($tax_author_array) > 0){
+        $author_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_author_array),
+        ];
+      }
+      if(sizeof($tax_recording_array) > 0){
+        $recording_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_recording_array),
+        ];
+      }
+      if(sizeof($tax_technical_array) > 0){
+        $technical_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_technical_array),
+        ];
+      }
+      if(sizeof($tax_musician_array) > 0){
+        $musician_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_musician_array),
+        ];
+      }
+
+    }
+  }
+
+  if(sizeof($musician_rows) > 0){
+    ksort($musician_rows);
+    $markup .= '<h2>Hljóðfæraleikur</h2>';
+    $markup .= theme('table', array('rows' => $musician_rows));
+  }
+  if(sizeof($author_rows) > 0){
+    ksort($author_rows);
+    $markup .= '<h2>Höfundar</h2>';
+    $markup .= theme('table', array('rows' => $author_rows));
+  }
+  if(sizeof($recording_rows) > 0){
+    ksort($recording_rows);
+    $markup .= '<h2>Upptaka</h2>';
+    $markup .= theme('table', array('rows' => $recording_rows));
+  }
+  if(sizeof($technical_rows) > 0){
+    ksort($technical_rows);
+    $markup .= '<h2>Tæknivinnsla</h2>';
+    $markup .= theme('table', array('rows' => $technical_rows));
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_work_participation_for_musician_as_musician_markup(){
+  $artist_obj = menu_get_object();
+  $markup = "";
+  if(!isset($artist_obj)){
+    return null;
+  }
+  $artist_relations = ismus_api_get_all_work_relations_for_artist($artist_obj->nid);
+  $works = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $musician_rows = [];
+  $author_rows = [];
+  $recording_rows = [];
+  $technical_rows = [];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $tax_author_array = [];
+      $tax_recording_array = [];
+      $tax_technical_array = [];
+      $tax_musician_array = [];
+      foreach($work['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        switch($parents[1]->tid){
+          case 26:
+            $tax_author_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 44:
+            $tax_recording_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          case 35:
+            $tax_technical_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          default:
+            $tax_musician_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $album_relations = ismus_api_get_album_for_song($work['node']->nid);
+      $albums = [];
+      foreach($album_relations as $album) {
+        $album_node = node_load($album->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $performer_relation = array_values(ismus_api_get_performer_of_work($album_node->nid))[0];
+        $performer_node = node_load($performer_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $album_cover = scald_atom_load($album_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+        $album_url = image_style_url('thumbnail', $album_cover->file_source);
+        $string = "<img src='{$album_url}' />";
+        $string .= "<p>" . l($album_node->title, "node/" . $album_node->nid) . " - " . l($performer_node->title, 'node/' . $performer_node->nid) . "</p>";
+        $albums[] = $string;
+      }
+      $work_title = $work['node']->title;
+
+      if(sizeof($tax_musician_array) > 0){
+        $musician_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_musician_array),
+        ];
+      }
+
+    }
+  }
+
+  if(sizeof($musician_rows) > 0){
+    ksort($musician_rows);
+    $markup .= '<h2>Hljóðfæraleikur</h2>';
+    $markup .= theme('table', array('rows' => $musician_rows));
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_work_participation_for_musician_as_author_markup(){
+  $artist_obj = menu_get_object();
+  $markup = "";
+  if(!isset($artist_obj)){
+    return null;
+  }
+  $artist_relations = ismus_api_get_all_work_relations_for_artist($artist_obj->nid);
+  $works = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $author_rows = [];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $tax_author_array = [];
+      foreach($work['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        switch($parents[1]->tid){
+          case 26:
+            $tax_author_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $album_relations = ismus_api_get_album_for_song($work['node']->nid);
+      $albums = [];
+      foreach($album_relations as $album) {
+        $album_node = node_load($album->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $performer_relation = array_values(ismus_api_get_performer_of_work($album_node->nid))[0];
+        $performer_node = node_load($performer_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $album_cover = scald_atom_load($album_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+        $album_url = image_style_url('thumbnail', $album_cover->file_source);
+        $string = "<img src='{$album_url}' />";
+        $string .= "<p>" . l($album_node->title, "node/" . $album_node->nid) . " - " . l($performer_node->title, 'node/' . $performer_node->nid) . "</p>";
+        $albums[] = $string;
+      }
+      $work_title = $work['node']->title;
+      if(sizeof($tax_author_array) > 0){
+        $author_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_author_array),
+        ];
+      }
+
+    }
+  }
+
+  if(sizeof($author_rows) > 0){
+    ksort($author_rows);
+    $markup .= '<h2>Höfundar</h2>';
+    $markup .= theme('table', array('rows' => $author_rows));
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_work_participation_for_musician_as_recording_markup(){
+  $artist_obj = menu_get_object();
+  $markup = "";
+  if(!isset($artist_obj)){
+    return null;
+  }
+  $artist_relations = ismus_api_get_all_work_relations_for_artist($artist_obj->nid);
+  $works = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $recording_rows = [];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $tax_recording_array = [];
+      foreach($work['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        switch($parents[1]->tid){
+          case 44:
+            $tax_recording_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+          default:
+            $tax_musician_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $album_relations = ismus_api_get_album_for_song($work['node']->nid);
+      $albums = [];
+      foreach($album_relations as $album) {
+        $album_node = node_load($album->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $performer_relation = array_values(ismus_api_get_performer_of_work($album_node->nid))[0];
+        $performer_node = node_load($performer_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $album_cover = scald_atom_load($album_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+        $album_url = image_style_url('thumbnail', $album_cover->file_source);
+        $string = "<img src='{$album_url}' />";
+        $string .= "<p>" . l($album_node->title, "node/" . $album_node->nid) . " - " . l($performer_node->title, 'node/' . $performer_node->nid) . "</p>";
+        $albums[] = $string;
+      }
+      $work_title = $work['node']->title;
+      if(sizeof($tax_recording_array) > 0){
+        $recording_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_recording_array),
+        ];
+      }
+    }
+  }
+
+  if(sizeof($recording_rows) > 0){
+    ksort($recording_rows);
+    $markup .= '<h2>Upptaka</h2>';
+    $markup .= theme('table', array('rows' => $recording_rows));
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_work_participation_for_musician_as_tech_markup(){
+  $artist_obj = menu_get_object();
+  $markup = "";
+  if(!isset($artist_obj)){
+    return null;
+  }
+  $artist_relations = ismus_api_get_all_work_relations_for_artist($artist_obj->nid);
+  $works = ismus_api_load_entities_from_relations($artist_relations, $artist_obj->nid);
+  $technical_rows = [];
+
+  if(isset($works['belongs_to'])){
+    foreach($works['belongs_to'] as $work){
+      $tax_technical_array = [];
+      foreach($work['relation']->field_role[LANGUAGE_NONE] as $role){
+        $parents = taxonomy_get_parents_all($role['tid']);
+        switch($parents[1]->tid){
+          case 35:
+            $tax_technical_array[] = l($parents[0]->name, 'taxonomy/term/' . $parents[0]->tid);
+            break;
+        }
+      }
+      $album_relations = ismus_api_get_album_for_song($work['node']->nid);
+      $albums = [];
+      foreach($album_relations as $album) {
+        $album_node = node_load($album->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $performer_relation = array_values(ismus_api_get_performer_of_work($album_node->nid))[0];
+        $performer_node = node_load($performer_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $album_cover = scald_atom_load($album_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+        $album_url = image_style_url('thumbnail', $album_cover->file_source);
+        $string = "<img src='{$album_url}' />";
+        $string .= "<p>" . l($album_node->title, "node/" . $album_node->nid) . " - " . l($performer_node->title, 'node/' . $performer_node->nid) . "</p>";
+        $albums[] = $string;
+      }
+      $work_title = $work['node']->title;
+      if(sizeof($tax_technical_array) > 0){
+        $technical_rows[$work_title] = [
+          implode(' ', $albums),
+          l($work_title, 'node/' . $work['node']->nid),
+          implode(',', $tax_technical_array),
+        ];
+      }
+    }
+  }
+
+  if(sizeof($technical_rows) > 0){
+    ksort($technical_rows);
+    $markup .= '<h2>Tæknivinnsla</h2>';
+    $markup .= theme('table', array('rows' => $technical_rows));
+  }
+
+  return $markup;
+}
+/**
+ * Creates markup to display what artist performes particular work
+ *
+ * @return string
+ */
+function _ismus_display_create_artist_work_markup(){
+  $obj = menu_get_object();
+  if(!is_object($obj)){
+    return null;
+  }
+  $artist_id = null;
+  $work_id = null;
+  if($obj->type == 'artist'){
+    $artist_id = $obj->nid;
+  }
+  else{
+    $work_id = $obj->nid;
+  }
+  $relations = ismus_api_get_artist_performs_work_relations($artist_id, $work_id);
+  if(is_array($relations)){
+    $links_array = null;
+    $relations = array_values($relations);
+    $artist = node_load($relations[0]->endpoints[LANGUAGE_NONE][0]['entity_id']);
+    $string = "<h3>Flytjandi: " . l($artist->title, 'node/' . $artist->nid) . "</h3>";
+    return $string;
+  }
+  else{
+    $markup = "<h3>Enginn flytjandi skráður</h3>";
+    if(user_access('administator')){
+      $markup .= "<a href='/verk/tengja-verk-vid-listamann/verk_id/{$work_id}'>Tengja verk við listamann</a>";
+    }
+    return $markup;
+  }
+}
+
+/**
+ * Creates markup for all works belonging to an artist
+ *
+ * @return null|string
+ */
+function _ismus_display_all_work_belongs_to_artist(){
+  $markup = "";
+  $artist = menu_get_object();
+  if(!is_object($artist)){
+    return null;
+  }
+
+  $artist_id = $artist->nid;
+  $works = ismus_api_get_all_work_for_artist($artist_id);
+  if(!$works){
+    return null;
+  }
+
+  $song_array = [];
+  $album_array = [];
+  $collection_array = [];
+  $series_array = [];
+
+  foreach($works as $work){
+    $work_node = node_load($work->endpoints[LANGUAGE_NONE][1]['entity_id']);
+    $cover_img_atom = scald_atom_load($work_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+    $cover_image_path = image_style_url('thumbnail', $cover_img_atom->file_source);
+    $cover_image = "<img src='{$cover_image_path}' />";
+
+    $obj = [];
+    $obj[] = $cover_image;
+    $obj[] = l($work_node->title, 'node/' . $work_node->nid);
+
+    switch($work_node->field_work_type[LANGUAGE_NONE][0]['tid']){
+      case HLJOMPLATA:
+        $album_array[] = $obj;
+        break;
+
+      case LAG:
+        $song_array[] = $obj;
+        break;
+
+      case SAFNPLATA:
+        $collection_array[] = $obj;
+        break;
+
+      case SERIA:
+        $series_array[] = $obj;
+        break;
+    }
+  }
+
+  if(sizeof($album_array) > 0){
+    ksort($album_array);
+    $markup .= '<h2>Hljómplötur</h2>';
+    $markup .= theme('table', array('rows' => $album_array));
+  }
+
+  if(sizeof($song_array) > 0){
+    ksort($song_array);
+    $markup .= '<h2>Lög</h2>';
+    $markup .= theme('table', array('rows' => $song_array));
+  }
+
+  if(sizeof($collection_array) > 0){
+    ksort($collection_array);
+    $markup .= '<h2>Safnplötur</h2>';
+    $markup .= theme('table', array('rows' => $collection_array));
+  }
+
+  if(sizeof($series_array) > 0){
+    ksort($series_array);
+    $markup .= '<h2>Seríur</h2>';
+    $markup .= theme('table', array('rows' => $series_array));
+  }
+
+  return $markup;
+}
+
+/**
+ * Creates markup for all albums belonging to an artist
+ *
+ * @return null|string
+ */
+function _ismus_display_all_albums_belongs_to_artist(){
+  $markup = "";
+  $artist = menu_get_object();
+  if(!is_object($artist)){
+    return null;
+  }
+
+  $artist_id = $artist->nid;
+  $works = ismus_api_get_all_work_for_artist($artist_id);
+  if(!$works){
+    return null;
+  }
+
+  $album_array = [];
+
+  foreach($works as $work){
+    $work_node = node_load($work->endpoints[LANGUAGE_NONE][1]['entity_id']);
+    $cover_img_atom = scald_atom_load($work_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+    $cover_image_path = image_style_url('thumbnail', $cover_img_atom->file_source);
+    $cover_image = "<img src='{$cover_image_path}' />";
+
+    $obj = [];
+    $obj[] = $cover_image;
+    $obj[] = l($work_node->title, 'node/' . $work_node->nid);
+
+    switch($work_node->field_work_type[LANGUAGE_NONE][0]['tid']){
+      case HLJOMPLATA:
+        $album_array[] = $obj;
+        break;
+    }
+  }
+
+  if(sizeof($album_array) > 0){
+    ksort($album_array);
+    $markup .= '<h2>Hljómplötur</h2>';
+    $markup .= theme('table', array('rows' => $album_array));
+  }
+
+  return $markup;
+}
+
+/**
+ * Creates markup for all songs belonging to an artist
+ *
+ * @return null|string
+ */
+function _ismus_display_all_songs_belongs_to_artist(){
+  $markup = "";
+  $artist = menu_get_object();
+  if(!is_object($artist)){
+    return null;
+  }
+
+  $artist_id = $artist->nid;
+  $works = ismus_api_get_all_work_for_artist($artist_id);
+  if(!$works){
+    return null;
+  }
+
+  $song_array = [];
+
+  foreach($works as $work){
+    $work_node = node_load($work->endpoints[LANGUAGE_NONE][1]['entity_id']);
+    $cover_img_atom = scald_atom_load($work_node->field_cover_image[LANGUAGE_NONE][0]['sid']);
+    $cover_image_path = image_style_url('thumbnail', $cover_img_atom->file_source);
+    $cover_image = "<img src='{$cover_image_path}' />";
+
+    $obj = [];
+    $obj[] = $cover_image;
+    $obj[] = l($work_node->title, 'node/' . $work_node->nid);
+
+    switch($work_node->field_work_type[LANGUAGE_NONE][0]['tid']){
+      case LAG:
+        $song_array[] = $obj;
+        break;
+    }
+  }
+
+  if(sizeof($song_array) > 0){
+    ksort($song_array);
+    $markup .= '<h2>Lög</h2>';
+    $markup .= theme('table', array('rows' => $song_array));
+  }
+
+  return $markup;
+}
+
+/**
+ * Creates markup for the decendancy of work
+ *
+ * @return null|string
+ */
+function _ismus_display_decendancy_of_work_markup(){
+  $markup = "";
+  $work = menu_get_object();
+  if(!is_object($work)){
+    return null;
+  }
+  $work_id = $work->nid;
+  $work_relations = ismus_api_get_decendancy_of_work($work_id);
+  $works = ismus_api_load_entities_from_relations($work_relations, $work_id);
+
+  if(isset($works['contains'])){
+    $url = l($works['contains'][0]['node']->title, 'node/' .$works['contains'][0]['node']->nid);
+    return "<h2>Upprunaleg útgáfa</h2><p>{$url}</p>";
+  }
+  if(isset($works['belongs_to'])){
+    $markup = "<h2>Aðrar útgáfur lagsins</h2>";
+    $markup .= "<ul>";
+    foreach($works['belongs_to'] as $work){
+      $tax = taxonomy_term_load($work['relation']->field_work_difference[LANGUAGE_NONE][0]['tid']);
+      $markup .= "<li>" . l($work['node']->title, 'node/' . $work['node']->nid) . " (" . $tax->name . ")</li>";
+    }
+    $markup .= "</ul>";
+  }
+
+  return $markup;
+}
+
+/**
+ * Displays the publisher(s) of a work, along with media type and production numbers.
+ *
+ * @return null|string
+ */
+function _ismus_display_publisher_of_work_markup(){
+  $work = menu_get_object();
+  global $user;
+  if(!is_object($work)){
+    return null;
+  }
+  //If it's a song, we don't display a publisher
+  if(isset($work->field_work_type[LANGUAGE_NONE][0]['tid'])){
+    if($work->field_work_type[LANGUAGE_NONE][0]['tid'] == LAG){
+      return null;
+    }
+  }
+
+  $work_id = $work->nid;
+  $work_relations = ismus_api_get_publisher_of_work($work_id);
+  $publishers = ismus_api_load_entities_from_relations($work_relations, $work_id);
+  $markup = "<h2>Útgefandi</h2>";
+  if(user_access('create ismus content')){
+    $markup .= "<p><a href='/verk/tengja-utgefanda-vid-hljomplotu/verk_id/" . $work_id . "'>Bæta við útgefanda</a></p>";
+  }
+
+  if(sizeof($publishers) > 0){
+    $publisher_array = [];
+    foreach($publishers['belongs_to'] as $publisher){
+      $production_entries = [];
+      foreach($publisher['relation']->field_production_info[LANGUAGE_NONE] as $pinfo) {
+        $paragraph_item = paragraphs_item_load($pinfo['value']);
+        $array = [];
+        $array['date'] = (isset($paragraph_item->field_date_of_publication[LANGUAGE_NONE]))
+          ? ismus_api_process_date_string(
+            $paragraph_item->field_date_of_publication[LANGUAGE_NONE][0]['value']
+          )
+          : "Útg.dags. ekki skráð";
+        $array['media_type'] = taxonomy_term_load(
+          $paragraph_item->field_media_type[LANGUAGE_NONE][0]['tid']
+        )->name;
+        $array['production_number'] = (isset($paragraph_item->field_production_number[LANGUAGE_NONE]))
+          ? $paragraph_item->field_production_number[LANGUAGE_NONE][0]['value']
+          : "";
+        $production_entries[] = $array;
+      }
+
+      $publisher_array[$publisher['node']->title] = [
+        'publisher_id' => $publisher['node']->nid,
+        'production_entries' => $production_entries,
+        'admin_operations' => (user_access('Update Íslensk tónlist content'))
+          ? _ismus_create_admin_relation_links($publisher['relation']->rid)
+          : ''
+      ];
+    }
+
+    foreach($publisher_array as $key => $value){
+      $publisher_link = l($key, 'node/' . $value['publisher_id']);
+      $markup .= "<div class='publishing_info'>";
+      $markup .= "<h3>{$publisher_link}</h3>";
+      $markup .= theme('table', ['rows' => $value['production_entries'], 'attributes' => ['id' => 'spotify-search-results']]);
+      $markup .= $value['admin_operations'];
+      $markup .= "</div>";
+    }
+  }
+  else{
+    $markup .= "<p>Enginn útgefandi skráður</p>";
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_spotify_album_markup($album_object) {
+  $markup = "";
+
+  if(sizeof($album_object['albums']['items']) == 0){
+    return "<h2>Engin gögn fundust hjá Spotify</h2>";
+  }
+
+  $markup .= "<div class='spotify-data'>";
+  $markup .= "<h2>Gögn frá Spotify</h2>";
+
+  $data_array = [];
+  $counter = 0;
+  foreach($album_object['albums']['items'] as $item) {
+    $line_array = [];
+    if(sizeof($item['images']) > 0){
+      $line_array[] = "<img src='" . $item['images'][2]['url'] . "' />";
+    }
+    else {
+      $line_array[] = "<p>Engin mynd er til</p>";
+    }
+    $line_array[] = $item['name'];
+    $line_array[] = $item['artists'][0]['name'];
+    $line_array[] = $item['type'];
+    $line_array[] = ['data' => $item['id'], 'id' => 'spotify-data-' . $counter];
+    $line_array[] = "<p><a class='button' id='copy-spotify-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $headers = ['Mynd', 'Nafn', 'Flytjandi', 'Tegund', 'Spotify ID', 'Afrita'];
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'spotify-search-results']]);
+
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+/**
+ * Displays artist search results from Spotify in a table.
+ *
+ * @param $artist_object array
+ *   Array of arrays.  Search results from Spotify
+
+ * @return string
+ *   Markup string.
+ */
+function _ismus_display_create_spotify_artist_markup($artist_object) {
+  $markup = "";
+
+  if(sizeof($artist_object['artists']['items']) == 0){
+    return "<h2>Engin gögn fundust hjá Spotify</h2>";
+  }
+
+  $markup .= "<div class='spotify-data'>";
+  $markup .= "<h2>Gögn frá Spotify</h2>";
+
+  $data_array = [];
+  $counter = 0;
+  foreach($artist_object['artists']['items'] as $item) {
+    $line_array = [];
+    if(sizeof($item['images']) > 0){
+      $line_array[] = "<img src='" . $item['images'][2]['url'] . "' />";
+    }
+    else {
+      $line_array[] = "<p>Engin mynd er til</p>";
+    }
+    $line_array[] = $item['name'];
+    $line_array[] = $item['type'];
+    $line_array[] = ['data' => $item['id'], 'id' => 'spotify-data-' . $counter];
+    $line_array[] = "<p><a class='button' id='copy-spotify-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $headers = ['Mynd', 'Nafn', 'Tegund', 'Spotify ID', 'Afrita'];
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'spotify-search-results']]);
+
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+function _ismus_display_create_spotify_song_markup($song_object) {
+  $markup = "";
+
+  if(sizeof($song_object['tracks']['items']) == 0){
+    return "<h2>Engin gögn fundust hjá Spotify</h2>";
+  }
+
+  $markup .= "<div class='spotify-data'>";
+  $markup .= "<h2>Gögn frá Spotify</h2>";
+
+  $data_array = [];
+  $counter = 0;
+  foreach($song_object['tracks']['items'] as $item) {
+    $line_array = [];
+    if(sizeof($item['album']['images']) > 0){
+      $line_array[] = "<img src='" . $item['album']['images'][2]['url'] . "' />";
+    }
+    else {
+      $line_array[] = "<p>Engin mynd er til</p>";
+    }
+    $line_array[] = $item['name'];
+    $line_array[] = $item['artists'][0]['name'];
+    $line_array[] = $item['album']['name'];
+    $line_array[] = $item['type'];
+    $line_array[] = ['data' => $item['id'], 'id' => 'spotify-data-' . $counter];
+    $line_array[] = "<p><a class='button' id='copy-spotify-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $headers = ['Mynd', 'Nafn', 'Flytjandi', 'Á plötunni', 'Tegund', 'Spotify ID', 'Afrita'];
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'spotify-search-results']]);
+
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+/**
+ * Displays artist search results from Discogs in a table.
+ *
+ * @param $artist_object array
+ *   Array of arrays.  Search results from Discogs
+
+ * @return string
+ *   Markup string.
+ */
+function _ismus_display_create_discogs_artist_markup($artist_object) {
+  $markup = "";
+
+  if (sizeof($artist_object['results']) == 0) {
+    return "<h2>Engin gögn fundust hjá Discogs</h2>";
+  }
+
+  $markup .= "<div class='discogs-data'>";
+  $markup .= "<h2>Gögn frá Discogs</h2>";
+
+  $data_array = [];
+  $counter = 0;
+
+  $headers = ['Mynd', 'Nafn', 'Profíll', 'Discogs ID', 'Einnig þekktur sem', 'Meðlimur í/Meðlimir', 'Afrita'];
+
+  foreach($artist_object['results'] as $item) {
+    $line_array = [];
+    $line_array[] = (isset($item['images']))
+      ? "<img src='" . $item['images'][0]['uri150'] . "' />"
+      : "<p>Engin mynd er til</p>";
+
+    $line_array[] = $item['name'];
+    $line_array[] = substr($item['profile'], 0, 100);
+    $line_array[] = ['data' => $item['id'], 'id' => 'discogs-data-' . $counter];
+    $line_array[] = isset($item['namevariations'])
+      ? implode(',', $item['namevariations'])
+      : '';
+
+    if(isset($item['groups'])) {
+      $groups = [];
+      foreach($item['groups'] as $group) {
+        $groups[] = $group['name'];
+      }
+      $line_array[] = theme_item_list(
+        [
+          'items' => $groups,
+          'title' => '',
+          'type' => 'ul',
+          'attributes' => []
+        ]
+      );
+    }
+    else if(isset($item['members'])) {
+      $members = [];
+      foreach($item['members'] as $member) {
+        $members[] = $member['name'];
+      }
+      $line_array[] = theme_item_list(
+        [
+          'items' => $members,
+          'title' => '',
+          'type' => 'ul',
+          'attributes' => []
+        ]
+      );
+    }
+    else {
+      $line_array[] = '';
+    }
+
+    $line_array[] = "<p><a class='button' id='copy-discogs-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'discogs-search-results']]);
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+function _ismus_display_create_discogs_album_markup($object) {
+  $markup = "";
+
+  if (sizeof($object['results']) == 0) {
+    return "<h2>Engin gögn fundust hjá Discogs</h2>";
+  }
+
+  $markup .= "<div class='discogs-data'>";
+  $markup .= "<h2>Gögn frá Discogs</h2>";
+
+  $data_array = [];
+  $counter = 0;
+
+  $headers = ['Mynd', 'Titill', 'Land', 'Discogs ID', 'Resource', 'Afrita'];
+
+  foreach($object['results'] as $item) {
+    $line_array = [];
+    $line_array[] = (isset($item['thumb']))
+      ? "<img src='" . $item['thumb'] . "' />"
+      : "<p>Engin mynd er til</p>";
+
+    $line_array[] = $item['title'];
+    $line_array[] = $item['country'];
+    $line_array[] = ['data' => $item['id'], 'id' => 'discogs-data-' . $counter];
+    $line_array[] = "<a target='_blank' href='" . $item['resource_url'] . "'>Hlekkur</a>";
+
+    $line_array[] = "<p><a class='button' id='copy-discogs-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'discogs-search-results']]);
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+function _ismus_display_create_musicbrainz_artist_markup($artist_object) {
+  $markup = "";
+
+  if (sizeof($artist_object['artists']) == 0) {
+    return "<h2>Engin gögn fundust hjá Musicbrainz</h2>";
+  }
+
+  $markup .= "<div class='musicbrainz-data'>";
+  $markup .= "<h2>Gögn frá Musicbrainz</h2>";
+
+  $data_array = [];
+  $counter = 0;
+
+  $headers = ['Nafn', 'Tegund', 'Kyn', 'Fædd(ur)/Stofnuð', 'Dáin(n)/Hætti', 'Musicbrainz ID', 'Afrita'];
+
+  foreach($artist_object['artists'] as $item) {
+    $line_array = [];
+    $line_array[] = $item['name'];
+    $line_array[] = (isset($item['type']))
+      ? ($item['type'] == 'Person')
+        ? 'Einstaklingur' : 'Hljómsveit'
+      : '';
+    $line_array[] =
+      (isset($item['gender']))
+        ? ($item['gender'] == 'Male')
+        ? 'Karl' : 'Kona'
+        : 'Hljómsveit';
+    $line_array[] = isset($item['life-span']['begin'])
+      ? $item['life-span']['begin']
+      : 'Ekki vitað';
+    $line_array[] = isset($item['life-span']['end'])
+      ? $item['life-span']['end']
+      : 'Ekki vitað';
+    $line_array[] = ['data' => $item['id'], 'id' => 'musicbrainz-data-' . $counter];
+    $line_array[] = "<p><a class='button' id='copy-musicbrainz-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array, 'attributes' => ['id' => 'musicbrainz-search-results']]);
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+function _ismus_display_create_musicbrainz_album_markup($object) {
+  $markup = "";
+
+  if (sizeof($object['artists']) == 0) {
+    return "<h2>Engin gögn fundust hjá Musicbrainz</h2>";
+  }
+
+  $markup .= "<div class='musicbrainz-data'>";
+  $markup .= "<h2>Gögn frá Musicbrainz</h2>";
+
+  $data_array = [];
+  $counter = 0;
+
+  $headers = ['Nafn', 'Tegund', 'Kyn', 'Fædd(ur)/Stofnuð', 'Dáin(n)/Hætti', 'Musicbrainz ID', 'Afrita'];
+
+  foreach($object['artists'] as $item) {
+    $line_array = [];
+    $line_array[] = $item['name'];
+    $line_array[] = (isset($item['type']))
+      ? ($item['type'] == 'Person')
+        ? 'Einstaklingur' : 'Hljómsveit'
+      : '';
+    $line_array[] =
+      (isset($item['gender']))
+        ? ($item['gender'] == 'Male')
+        ? 'Karl' : 'Kona'
+        : 'Hljómsveit';
+    $line_array[] = isset($item['life-span']['begin'])
+      ? $item['life-span']['begin']
+      : 'Ekki vitað';
+    $line_array[] = isset($item['life-span']['end'])
+      ? $item['life-span']['end']
+      : 'Ekki vitað';
+    $line_array[] = $item['id'];
+    $line_array[] = "<p><a class='button' id='copy-musicbrainz-data-" . $counter . "' href='#'>Afrita ID í formið</a></p>";
+    $data_array[] = ['data' => $line_array, 'id' => 'item-row-' . $counter++];
+  }
+
+  $table = theme('table', ['header' => $headers, 'rows' => $data_array]);
+  $markup .= $table;
+  $markup .= "</div>";
+
+  return $markup;
+}
+
+function _ismus_display_create_song_data_markup($spotify_data) {
+  $markup = "";
+  $markup .= "<div id='webservice-song-data'>";
+
+  if(is_array($spotify_data)) {
+    $data_array = [];
+    $markup .= "<h2>Spotify data</h2>";
+    $header = ['Titill', 'Spotify_id', 'Preview', 'Track #', 'Lengd'];
+    $data_array[] = [
+      'data' => [
+        $spotify_data['name'],
+        $spotify_data['id'],
+        '<a target="_blank" href="' . $spotify_data['preview_url'] . '">Lagbútur</a>',
+        $spotify_data['track_number'],
+        $spotify_data['duration_ms'],
+      ]
+    ];
+
+    if(sizeof($data_array) > 0) {
+      $table = theme('table', ['header' => $header, 'rows' => $data_array, 'attributes' => ['id' => 'webservice-song-data-spotify-table']]);
+      $markup .= $table;
+    }
+  }
+
+  $markup .= "</div>";
+  return $markup;
+}
+
+function _ismus_display_create_tracklist_data_markup($spotify_data, $discogs_data) {
+  $markup = "";
+  $markup .= "<div id='webservice-song-data'>";
+
+  if(is_array($spotify_data)) {
+    $data_array = [];
+    $markup .= "<h2>Spotify data</h2>";
+    $header = ['Titill', 'Spotify_id', 'Preview', 'Track #', 'Lengd'];
+    foreach($spotify_data['tracks']['items'] as $item) {
+      $data_array[] = [
+        'data' => [
+          $item['name'],
+          $item['id'],
+          '<a target="_blank" href="' . $item['preview_url'] . '">Lagbútur</a>',
+          $item['track_number'],
+          ismus_api_convert_ms_into_hrs_mins_sec($item['duration_ms']),
+        ]
+      ];
+    }
+
+    if(sizeof($data_array) > 0) {
+      $table = theme('table', ['header' => $header, 'rows' => $data_array, 'attributes' => ['id' => 'webservice-song-data-spotify-table']]);
+      $markup .= $table;
+    }
+  }
+  if(is_array($discogs_data)) {
+    $data_array = [];
+    $markup .= "<h2>Discogs data</h2>";
+    $header = ['Titill', 'duration', 'Track pos'];
+    foreach($discogs_data['tracklist'] as $track) {
+      $data_array[] = [
+        'data' => [
+          $track['title'],
+          $track['duration'],
+          $track['position'],
+        ]
+      ];
+    }
+
+    if(sizeof($data_array) > 0) {
+      $table = theme('table', ['header' => $header, 'rows' => $data_array, 'attributes' => ['id' => 'webservice-song-data-discogs-table']]);
+      $markup .= $table;
+    }
+  }
+
+  $markup .= "</div>";
+  return $markup;
+}
+
+function _ismus_display_create_album_data_markup(
+  $spotify_album_entity, $discogs_album_entity
+) {
+  $markup = "";
+  $markup .= "<div id='webservice-album-data'>";
+  $data_array = [];
+  $markup .= "<h2>Gögn frá vefþjónustum</h2>";
+  if(is_array($spotify_album_entity)) {
+    if(is_array($spotify_album_entity['genres'])) {
+      $data_array[] = [
+        'data' => [
+          'Tónlistartegundir (Spotify)',
+          implode(', ', $spotify_album_entity['genres']) . '<p>Athugaðu að þú þarft að velja íslenskar útgáfur af hverri tegund!',
+          '<input id="webservice-genres-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-genres-spotify',
+      ];
+    }
+    if(is_array($spotify_album_entity['images'])) {
+      $data_array[] = [
+        'data' => [
+          'Ljósmynd (Spotify)',
+          "<img src='" . $spotify_album_entity['images'][2]['url'] . "' /><p><a target='_blank' href='" . $spotify_album_entity['images'][0]['url'] . "'>Mynd</a></p>",
+          '<input id="webservice-image-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-image-spotify',
+      ];
+    }
+    if(strlen($spotify_album_entity['label']) > 0) {
+      $data_array[] = [
+        'data' => [
+          'Label (Spotify)',
+          $spotify_album_entity['label'],
+          '<input id="webservice-label-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-label-spotify',
+      ];
+    }
+    if(strlen($spotify_album_entity['release_date']) > 0) {
+      $data_array[] = [
+        'data' => [
+          'Útgáfudagsetning',
+          $spotify_album_entity['release_date'],
+          '<input id="webservice-release-date-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-release-date-spotify',
+      ];
+      $data_array[] = [
+        'data' => [
+          'Útgáfudags.nákv.',
+          $spotify_album_entity['release_date_precision'],
+          '<input id="webservice-release-date-precision-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-release-date-precision-spotify',
+      ];
+    }
+  }
+  else {
+    $markup .= "<p>Data not available from Spotify</p>";
+  }
+  if(is_array($discogs_album_entity)) {
+    if(isset($discogs_album_entity['styles'])) {
+      $data_array[] = [
+        'data' => [
+          'Tónlistarstílar (Discogs)',
+          implode(', ', $discogs_album_entity['styles']) . '<p>Athugaðu að þú þarft að velja íslenskar útgáfur af hverri tegund!',
+          '<input id="webservice-styles-discogs-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-styles-discogs',
+      ];
+    }
+    if(is_array($discogs_album_entity['labels'])) {
+      $label_counter = 1;
+      foreach($discogs_album_entity['labels'] as $label) {
+        $data_array[] = [
+          'data' => [
+            'Útgefandi (Discogs)',
+            $label['name'] . "(" . $label['id'] . ") - " . $label['catno'],
+            '<input id="webservice-label' . $label_counter . '-discogs-check" type="checkbox" />'
+          ],
+          'id' => 'webservice-label-' . $label_counter++ . '-discogs',
+        ];
+      }
+    }
+    if(is_array($discogs_album_entity['genres'])) {
+      $data_array[] = [
+        'data' => [
+          'Tónlistartegundir (Discogs)',
+          implode(', ', $discogs_album_entity['genres']) . '<p>Athugaðu að þú þarft að velja íslenskar útgáfur af hverri tegund!',
+          '<input id="webservice-genres-discogs-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-genres-discogs',
+      ];
+    }
+    if(is_array($discogs_album_entity['formats'])) {
+      $format_counter = 1;
+      foreach($discogs_album_entity['formats'] as $format) {
+        $data_array[] = [
+          'data' => [
+            'Format',
+            $format['name'],
+            '<input id="webservice-format' . $format_counter . '-discogs-check" type="checkbox" />'
+          ],
+          'id' => 'webservice-format-' . $format_counter++ . '-discogs',
+        ];
+      }
+    }
+  }
+  else {
+    $markup .= "<p>Data not available from Discogs</p>";
+  }
+  if(sizeof($data_array) > 0) {
+    $table = theme('table', ['rows' => $data_array, 'attributes' => ['id' => 'webservice-artist-data-table']]);
+    $markup .= "<p><a href='#'>Afrita merkt gögn í formið</a></p>";
+    $markup .= $table;
+    $markup .= "<p><a id='artist-data-copy' href='#'>Afrita merkt gögn í formið</a></p>";
+    $markup .= "</div>";
+  }
+
+  return $markup;
+}
+
+function _ismus_display_create_artist_data_markup(
+  $spotify_artist_entity, $discogs_artist_entity, $musicbrainz_artist_entity
+) {
+  $markup = "";
+  $markup .= "<div id='webservice-artist-data'>";
+  $data_array = [];
+  $markup .= "<h2>Gögn frá vefþjónustum</h2>";
+  if(is_array($spotify_artist_entity)) {
+    if(is_array($spotify_artist_entity['genres'])) {
+      $data_array[] = [
+        'data' => [
+          'Tónlistartegundir (Spotify)',
+          implode(', ', $spotify_artist_entity['genres']) . '<p>Athugaðu að þú þarft að velja íslenskar útgáfur af hverri tegund!',
+          '<input id="webservice-genres-spotify-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-genres-spotify',
+      ];
+    }
+    if(is_array($spotify_artist_entity['images'])) {
+      $data_array[] = [
+        'data' => [
+          'Ljósmynd (Spotify)',
+          "<img src='" . $spotify_artist_entity['images'][2]['url'] . "' /><p><a target='_blank' href='" . $spotify_artist_entity['images'][0]['url'] . "'>Mynd</a></p>",
+          '<input id="webservice-image-discogs-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-image-spotify',
+      ];
+    }
+  }
+  else {
+    $markup .= "<p>Data not available from Spotify</p>";
+  }
+
+  if(is_array($discogs_artist_entity)) {
+    if(is_array($discogs_artist_entity['namevariations'])) {
+      $data_array[] = [
+        'data' => [
+          'Önnur nöfn (Discogs)',
+          implode(', ', $discogs_artist_entity['namevariations']),
+          '<input id="webservice-alternate-names-discogs-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-alternate-names-discogs',
+      ];
+    }
+    if(isset($discogs_artist_entity['images'])) {
+      $image_counter = 1;
+      foreach($discogs_artist_entity['images'] as $dc_image) {
+        $data_array[] = [
+          'data' => [
+            "Ljósmynd {$image_counter} (Discogs)",
+            "<img src='" . $dc_image['uri150'] . "' /><p><a target='_blank' href='" . $dc_image['uri'] . "'>Mynd</a></p>",
+            '<input id="webservice-image' . $image_counter . '-discogs-check" type="checkbox" />'
+          ],
+          'id' => 'webservice-image-' . $image_counter . '-discogs',
+        ];
+        $image_counter++;
+      }
+    }
+    if(is_array($discogs_artist_entity['profile'])) {
+      $data_array[] = [
+        'data' => [
+          "Prófíll",
+          $discogs_artist_entity['profile'],
+          '<input id="webservice-profile-discogs-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-profile-discogs',
+      ];
+    }
+  }
+  else {
+    $markup .= "<p>Data not available from Discogs</p>";
+  }
+
+  if(is_array($musicbrainz_artist_entity)) {
+    if(is_array($musicbrainz_artist_entity['life-span'])) {
+      $life_span = $musicbrainz_artist_entity['life-span'];
+      $person = ($musicbrainz_artist_entity['type'] == 'Person') ? true : false;
+      $born_string = ($person) ? "Fædd(ur) dags." : "Stofnuð dags.";
+      $died_string = ($person) ? "Dáin(n) dags." : "Lögð niður dags.";
+      $ended_string = ($person) ? "Dáin(n)" : "Lögð niður";
+      $data_array[] = [
+        'data' => [
+          $born_string . " (Musicbrainz)",
+          (isset($life_span['begin'])) ? $life_span['begin'] : "Ekki skráð",
+          '<input id="webservice-life-span-begin-musicbrainz-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-life-span-begin-musicbrainz',
+      ];
+      $data_array[] = [
+        'data' => [
+          $ended_string . " (Musicbrainz)",
+          ($life_span['end']) ? "Já" : "Nei",
+          '<input id="webservice-life-span-ended-musicbrainz-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-life-span-end-musicbrainz',
+      ];
+      $data_array[] = [
+        'data' => [
+          $died_string . " (Musicbrainz)",
+          ($life_span['end']) ? $life_span['end'] : "Ekki skráð",
+          '<input id="webservice-life-span-end-musicbrainz-check" type="checkbox" />'
+        ],
+        'id' => 'webservice-life-span-ended-musicbrainz',
+      ];
+    }
+  }
+  else {
+    $markup .= "<p>Data not available from MusicBrainz</p>";
+  }
+
+  if(sizeof($data_array) > 0) {
+    $table = theme('table', ['rows' => $data_array, 'attributes' => ['id' => 'webservice-artist-data-table']]);
+    $markup .= "<p><a href='#'>Afrita merkt gögn í formið</a></p>";
+    $markup .= $table;
+    $markup .= "<p><a id='artist-data-copy' href='#'>Afrita merkt gögn í formið</a></p>";
+    $markup .= "</div>";
+  }
+
+  return $markup;
+}
+
+function _ismus_display_albums_published_by_publisher() {
+  $publisher = menu_get_object();
+  if(!is_object($publisher)){
+    return null;
+  }
+  $work_relations = ismus_api_get_all_work_for_publisher($publisher->nid);
+  $albums = ismus_api_load_entities_from_relations($work_relations, $publisher->nid);
+  $album_array = [];
+  foreach($albums['contains'] as $album) {
+    $image = scald_atom_load($album['node']->field_cover_image[LANGUAGE_NONE][0]['sid']);
+    $artist_relation = array_values(ismus_api_get_performer_of_work($album['node']->nid))[0];
+    $artist = node_load($artist_relation->endpoints[LANGUAGE_NONE][0]['entity_id']);
+    $cover_image_path = image_style_url('thumbnail', $image->file_source);
+    $cover_image = "<img src='{$cover_image_path}' />";
+    $array['cover_image'] = $cover_image;
+    $array['album_title'] = l($album['node']->title, 'node/' . $album['node']->nid);
+    $array['artist_name'] = l($artist->title, 'node/' . $artist->nid);
+    $album_array[] = $array;
+  }
+  $markup = "<h2>Plötur gefnar út af útgefandanum</h2>";
+  $markup .= theme('table', ['rows' => $album_array]);
+
+  return $markup;
+}
+
+function _ismus_display_instruments_used_by_artist() {
+  $artist = menu_get_object();
+  if(!is_object($artist)){
+    return null;
+  }
+  $markup = "<h2>Tónlistarmaðurinn leikur á þessi hljóðfæri eða starfar við eftirfarandi hlutverk</h2>";
+  $instrument_relations = ismus_api_get_all_instruments_for_artist($artist->nid);
+  $instrument_array = [];
+  if(isset($instrument_relations)){
+    foreach($instrument_relations as $instrument) {
+      $term = taxonomy_term_load($instrument->endpoints[LANGUAGE_NONE][1]['entity_id']);
+      $link = l($term->name, 'taxonomy/term/' . $term->tid);
+      $instrument_array[] = $link;
+    }
+    $markup .= implode(", ", $instrument_array);
+  }
+  else {
+    return null;
+  }
+
+  return $markup;
+}
+
+function _ismus_display_artist_roles() {
+  $role = menu_get_object('taxonomy_term', 2);
+  $a = 10;
+}

@@ -1,0 +1,266 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: drupalviking
+ * Date: 19/07/16
+ * Time: 09:35
+ */
+/**
+ * The Spotify Search form + Display box
+ *
+ * Also adds functionality to copy the values from this form to create/edit
+ * song part
+ *
+ * @param $form
+ * @param $form_state
+ * @return mixed
+ */
+function spotify_lookup_api_search_spotify_song_and_artist_ajax($form, &$form_state) {
+  $value = explode('/', $_GET['q']);
+
+  $song = node_load($value[2]);
+  $song_info = spotify_lookup_api_search_song_info($value[2]);
+
+  $artist_id = $song->field_performer[LANGUAGE_NONE][0]['target_id'];
+  $artist = node_load($artist_id);
+
+  $form['spotify'] = array(
+    '#title' => "Leita að lagi og flytjanda á Spotify",
+    // The prefix/suffix provide the div that we're replacing, named by
+    // #ajax['wrapper'] above.
+    '#prefix' => '<div id="spotify-search-div">',
+    '#suffix' => '</div>',
+    '#type' => 'fieldset',
+  );
+
+  $form['spotify']['search'] = array(
+    '#title' => 'Leita á Spotify',
+    '#type' => 'fieldset',
+  );
+
+  $form['spotify']['results'] = array(
+    '#title' => 'Leitarniðurstöður',
+    '#type' => 'fieldset',
+  );
+
+  $form['spotify']['search']['performer'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => 'Flytjandi',
+    '#description' => t('Nafn flytjanda lagsins'),
+    '#value' => $artist->title
+  );
+
+  $form['spotify']['search']['song'] = array(
+    '#type' => 'textfield',
+    '#required' => true,
+    '#title' => 'Titill lags',
+    '#value' => $song->title,
+  );
+
+  $form['spotify']['results']['box'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<div id="results">',
+    '#suffix' => '</div>',
+    '#markup' => '<h2>Leitarniðurstöður birtast hér</h2>',
+  );
+
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'spotify_lookup_api') . '/spotify_lookup_api.js',
+  );
+
+  $form['spotify']['submit'] = array(
+    '#type' => 'submit',
+    '#ajax' => array(
+      'callback' => 'spotify_lookup_api_search_spotify_song_and_artist_callback',
+      'wrapper' => 'results',
+    ),
+    '#value' => t('Leita'),
+  );
+
+  return $form;
+}
+
+/**
+ * Menu AJAX Callback; Data returned from Search Spotify Action
+ *
+ * @param $form
+ * @param $form_state
+ * @return mixed
+ * @throws \Exception
+ */
+function spotify_lookup_api_search_spotify_song_and_artist_callback($form, $form_state) {
+  $artist = $form_state['input']['performer'];
+  $song = $form_state['input']['song'];
+  $spotify_data = spotify_lookup_get_spotify_info($artist, $song);
+  $element = $form['spotify']['results']['box'];
+  $headers = ['Type', 'Value'];
+  $rows[] = [['data'=> 'Track id'], ['data' => $spotify_data->track->id, 'id' => 'spotify-data-track-id']];
+  $rows[] = [['data'=> 'Track name'], ['data'=> $spotify_data->track->name, 'id' => 'spotify-data-track-name']];
+  $rows[] = [['data'=> 'Track preview'], ['data'=> $spotify_data->track->preview, 'id' => 'spotify-data-track-preview']];
+  $rows[] = [['data'=> 'Track preview audio'], ['data'=> '<audio controls type="audio/mpeg" src="'.$spotify_data->track->preview.'"></audio><p>' . $spotify_data->track->preview . "<p>"]];
+  $rows[] = [['data'=> 'Album id'], ['data'=> $spotify_data->album->id, 'id' => 'spotify-data-album-id']];
+  $rows[] = [['data'=> 'Album name'], ['data'=> $spotify_data->album->name, 'id' => 'spotify-data-album-name']];
+  $rows[] = [['data'=> 'Album type'], ['data'=> $spotify_data->album->type, 'id' => 'spotify-data-album-type']];
+  $rows[] = [['data'=> 'Album Cover art Image'], ['data'=> "<img height='150' width='150' src='".$spotify_data->album->image."'/><p>" . $spotify_data->album->image . "</p>"]];
+  $rows[] = [['data'=> 'Album Cover art'], ['data'=> $spotify_data->album->image, 'id' => 'spotify-data-album-cover']];
+  $rows[] = [['data'=> 'Artist id'], ['data'=> $spotify_data->artist->id, 'id' => 'spotify-data-artist-id']];
+  $rows[] = [['data'=> 'Artist name'], ['data'=> $spotify_data->artist->name, 'id' => 'spotify-data-artist-name']];
+  $rows[] = [['data'=> 'Artist art Image'], ['data'=> "<img height='150' width='150' src='".$spotify_data->artist->image."'/><p>" . $spotify_data->artist->image . "</p>"]];
+  $rows[] = [['data'=> 'Artist art'], ['data'=> $spotify_data->artist->image, 'id' => 'spotify-data-artist-cover']];
+
+  $markup = theme('table', array('header' => $headers, 'rows' => $rows));
+
+  $markup .= "<p><a class='button' id='copy-spotify-data' href='#'>Afrita gögnin í formið</a>";
+  $element['#markup'] = $markup;
+  return $element;
+}
+
+/**
+ * Creates an iframe embed with MultiTrack - To play multiple songs in once,
+ * without Spotify playlist.
+ *
+ * @param $data
+ * @param bool $reverse
+ * @return string
+ */
+function spotify_lookup_api_create_spotify_multiple_playlist($data, $reverse = true){
+  $song_info_array = [];
+  $playlist_string = "";
+  foreach($data as $song_item){
+    $song_info = spotify_lookup_api_search_song_info($song_item->song_id);
+    $song_info_array[] = node_load($song_info->nid);
+  }
+
+  $song_info_array_reversed = array_reverse($song_info_array);
+  $useable_array = ($reverse) ? $song_info_array_reversed : $song_info_array;
+
+  foreach($useable_array as $song){
+    if(isset($song->field_spotify_song_id[LANGUAGE_NONE])){
+      if(!empty($playlist_string)){
+        $playlist_string .= ",";
+      }
+      $playlist_string .= $song->field_spotify_song_id[LANGUAGE_NONE][0]['value'];
+    }
+  }
+
+  $output = '<iframe src="https://embed.spotify.com/?uri=spotify:trackset::'.$playlist_string.'" frameborder="0" allowtransparency="true" width="720" height="400" view="list" ></iframe>';
+
+  return $output;
+}
+
+/**
+ * Generates a request string, sent to spotify_lookup_api_query_api to query the Spotify
+ * API and finally generates a stdClass with the data from the query.
+ *
+ * @param $artist
+ * @param $song
+ * @return \stdClass
+ */
+function spotify_lookup_api_get_spotify_info($artist, $song){
+  $artist = transliteration_get(str_replace(' ', '+', mb_strtolower(trim($artist))));
+  $song = str_replace("'", '', $song);
+  $song = transliteration_get(str_replace(' ', '+', mb_strtolower(trim($song))));
+  $track_string = "https://api.spotify.com/v1/search?q=track:{$song}%20artist:{$artist}&type=track";
+  $track_result = json_decode(spotify_lookup_api_query_api($track_string));
+  $artist_url = $track_result->tracks->items[0]->artists[0]->href;
+  $artist_result = json_decode(spotify_lookup_api_query_api($artist_url));
+
+  $spotify_object = new stdClass();
+  $spotify_object->artist->id = $artist_result->id;
+  $spotify_object->artist->name = $artist_result->name;
+  $spotify_object->artist->image = $artist_result->images[0]->url;
+  $spotify_object->track->name = $track_result->tracks->items[0]->name;
+  $spotify_object->track->preview = $track_result->tracks->items[0]->preview_url;
+  $spotify_object->track->id = $track_result->tracks->items[0]->id;
+  $spotify_object->album->id = $track_result->tracks->items[0]->album->id;
+  $spotify_object->album->name = $track_result->tracks->items[0]->album->name;
+  $spotify_object->album->type = $track_result->tracks->items[0]->album->type;
+  $spotify_object->album->image = $track_result->tracks->items[0]->album->images[0]->url;
+
+  return $spotify_object;
+}
+
+function spotify_lookup_api_search_artist($artist_name){
+  $artist = transliteration_get(str_replace(' ', '+', mb_strtolower(trim($artist_name))));
+  $artist = str_replace("'", '', $artist);
+  $artist_string = "https://api.spotify.com/v1/search?q=artist:{$artist}&type=artist";
+  $artist_result = json_decode(spotify_lookup_api_query_api($artist_string));
+
+  if(sizeof($artist_result->artists->items) > 0){
+    $spotify_object = new stdClass();
+    $spotify_object->id = $artist_result->artists->items[0]->id;
+    $spotify_object->name = $artist_result->artists->items[0]->name;
+    $spotify_object->image = (isset($artist_result->artists->items[0]->images[0]))
+      ? $artist_result->artists->items[0]->images[0]->url
+      : null;
+    return $spotify_object;
+  }
+  else{
+    return null;
+  }
+}
+
+function spotify_lookup_api_search_album($album_name){
+  $album = transliteration_get(str_replace(' ', '+', mb_strtolower(trim($album_name))));
+  $album = str_replace("'", '', $album);
+
+  $album_string = "https://api.spotify.com/v1/search?q=album:{$album}&type=album";
+  $album_result = json_decode(spotify_lookup_api_query_api($album_string));
+
+  if(sizeof($album_result->albums->items) > 0){
+    $spotify_object = new stdClass();
+    $spotify_object->id = $album_result->albums->items[0]->id;
+    $spotify_object->name = $album_result->albums->items[0]->name;
+    $spotify_object->image = (isset($album_result->albums->items[0]->images[0]))
+      ? $album_result->albums->items[0]->images[0]->url
+      : null;
+    return $spotify_object;
+  }
+  else{
+    return null;
+  }
+}
+
+function spotify_lookup_api_search_track($track_name){
+  $track = transliteration_get(str_replace(' ', '+', mb_strtolower(trim($track_name))));
+  $track = str_replace("'", '', $track);
+
+  $track_string = "https://api.spotify.com/v1/search?q=track:{$track}&type=track";
+  $track_result = json_decode(spotify_lookup_api_query_api($track_string));
+
+  if(sizeof($track_result->tracks->items) > 0){
+    $spotify_object = new stdClass();
+    $spotify_object->id = $track_result->tracks->items[0]->id;
+    $spotify_object->name = $track_result->tracks->items[0]->name;
+    $spotify_object->preview = $track_result->tracks->items[0]->preview_url;
+    $spotify_object->duration = $track_result->tracks->items[0]->duration_ms;
+    $spotify_object->artist = $track_result->tracks->items[0]->artists[0]->name;
+    $spotify_object->album = new stdClass();
+    $spotify_object->album->name = $track_result->tracks->items[0]->album->name;
+    $spotify_object->album->id = $track_result->tracks->items[0]->album->id;
+
+    return $spotify_object;
+  }
+  else{
+    return null;
+  }
+}
+
+
+/**
+ * Sends a query to any API with CURL
+ *
+ * @param $query_string string Fully generated request string
+ * @return mixed
+ */
+function spotify_lookup_api_query_api($query_string){
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $query_string);
+  curl_setopt($ch, CURLOPT_HEADER, 0);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  $content = curl_exec($ch);
+  curl_close($ch);
+
+  return $content;
+}

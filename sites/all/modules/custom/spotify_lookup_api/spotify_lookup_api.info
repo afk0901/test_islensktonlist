@@ -1,0 +1,4 @@
+name = Spotify Lookup
+description = Module that connects to the Spotify API and searches it. DEPRICATED
+core = 7.x
+package = Islensk tonlist

@@ -1,0 +1,28 @@
+Á eftir að flytja yfir:
+ismus_Apperance - Tengir saman verk (lög) við verk (hljómplötur).  Tengitafla.  Relations
+ismus_ArtistGenre - Tengir saman listamenn við genrur.  Hefur rank.  Tengitafla.  Relations?
+ismus_BandType - Taxonomy - þarf að spóla yfir með kóða
+ismus_Membership - Tengir saman listamenn við hljómsveitir og hljómsveitir við aðrar hljómsveitir.  Hefur fleiri field.  Relations - Fieldable
+ismus_MembershipRole - Tengir saman Memberships við Roles, 1-N.  Relations?
+ismus_Participation - Tengir saman listamenn við verk og hvað þeir gerðu.  (Jón söng í laginu Halló).  Relations
+ismus_Role - Taxonomy - þarf að spóla yfir með kóða.  Hugsanlega tengja saman við RoleGroup og setja RoleGroup sem yfirflokk
+ismus_RoleGroup - Taxonomy yfirflokkur.
+ismus_WorkGenre - Tengir saman verk við genrur.  Hefur rank. Tengitafla.  Relations, eins og ArtistGenre
+ismus_WorkRelease - Tengir saman verk og útgáfur.  Hefur fleiri field - Relations, Fieldable
+
+Tilbúið:
+ismus_ApperanceType - Taxonomy - Flutt yfir
+ismus_ArtistType - Taxonomy - Flutt yfir
+ismus_Genre - Taxonomy - Flutt yfir
+ismus_MediaType - Taxonomy - Flutt yfir
+ismus_WorkType - Taxonomy - Flutt yfir
+
+Contenttýpur:
+ismus_Artist - Listamaður - Entity - Content týpa til
+ismus_Publisher - Útgáfa - Entity - Content týpa til
+ismus_Work - Verk - Entity - Content týpa til
+
+
+Ónotað:
+ismus_Users - Ónotuð tafla - verður ekki flutt yfir
+ismus_Changes - Ónotuð tafla - verður ekki flutt yfir

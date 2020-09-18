@@ -1,0 +1,6 @@
+name = Islensk Tonlist Display Module
+description = Creates display blocks for the project
+core = 7.x
+package = Islensk tonlist
+
+dependencies[] = ismus_api

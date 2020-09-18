@@ -1,0 +1,474 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: drupalviking
+ * Date: 10/10/16
+ * Time: 16:31
+ */
+
+/**
+ * Implements hook_menu
+ * @return mixed
+ */
+function ismus_admin_menu(){
+  $items['lag/tengja-foreldri-vid-barn'] = [
+    'title' => 'Tengja saman foreldri (upprunalega útgáfu) við barn',
+    'description' => 'Lög eru til annað hvort sem upprunalegar útgáfur eða sem
+      einhversskonar ábreiður, lifandi eða úr stúdíói.  Þetta form býr til tengingarnar
+      á milli þeirra.',
+    'page callback' => 'ismus_admin_connect_parent_to_child_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/parent_to_child_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-verk-vid-listamann'] = [
+    'title' => 'Tengja verk við listamann',
+    'description' => 'Verk eru bæði lög og hljómplötur.  Tengja þarf bæði við
+      listamanninn, til að hægt sé að fletta þeim upp.',
+    'page callback' => 'ismus_admin_connect_work_to_artist_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/work_to_artist_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['listamadur/stofna-listamann'] = [
+    'title' => 'Stofna listamann',
+    'page callback' => 'ismus_admin_create_artist_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/artist_create.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin')
+  ];
+
+  $items['listamadur/breyta-listamanni/%'] = [
+    'title' => 'Breyta listamanni',
+    'page callback' => 'ismus_admin_edit_artist_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/artist_edit.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['listamadur/tengja-hljodfaeri-vid-listamann/%'] = [
+    'title' => 'Tengja hljóðfæri við listamann',
+    'page callback' => 'ismus_admin_connect_instrument_to_artist_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/instrument_to_artist_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['listamadur/baeta-tonlistarmanni-i-hljomsveit/%'] = [
+    'title' => 'Bæta tónlistarmanni í hljómsveit',
+    'page callback' => 'ismus_admin_add_artist_to_band',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/artist_to_band_connections.inc',
+  ];
+
+  $items['verk/skra-hljomplotu'] = [
+    'title' => 'Skrá hljómplötu',
+    'page callback' => 'ismus_admin_create_album_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/album_create.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/breyta-hljomplotu'] = [
+    'title' => 'Breyta hljómplötu',
+    'page callback' => 'ismus_admin_edit_album_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/album_edit.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/skra-lag'] = [
+    'title' => 'Skrá lag',
+    'page callback' => 'ismus_admin_create_song_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/song_create.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/breyta-lagi'] = [
+    'title' => 'Breyta lagi',
+    'page callback' => 'ismus_admin_edit_song_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/song_edit.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-lag-vid-hljomplotu/%'] = [
+    'title' => 'Tengja lag við hljómplötu',
+    'page callback' => 'ismus_admin_connect_song_to_album_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/song_to_album_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin')
+  ];
+
+  $items['verk/tengja-log-vid-hljomplotu'] = [
+    'title' => 'Tengja lög við hljómplötu',
+    'page callback' => 'ismus_admin_connect_songs_to_album_page',
+    'access arguments' => ['access administration pages'],
+    'file' => 'includes/songs_to_album_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-hljodfaeraleikara-vid-lag/%'] = [
+    'title' => 'Tengja hljóðfæraleikara við lag',
+    'page callback' => 'ismus_admin_connect_artist_to_song_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/artist_to_song_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-utgefanda-vid-hljomplotu/%'] = [
+    'title' => 'Tengja útgefanda við hljómplötu',
+    'page callback' => 'ismus_admin_connect_publisher_to_album_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/publisher_to_album_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-flytjanda-hljomplotu-sem-flytjanda-laga/%'] = [
+    'title' => 'Tengja flytjanda hljómplötu sem flytjanda laga',
+    'page callback' => 'ismus_admin_connect_artist_members_to_songs_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/performing_members_to_songs_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/tengja-einstakling-sem-flytjanda-laga-a-hljomplotu/%'] = [
+    'title' => 'Tengja einstakling sem flytjanda laga á heilli hljómplötu',
+    'page callback' => 'ismus_admin_artist_to_songs_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/artist_to_songs_connections.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  $items['verk/baeta-logum-a-hljomplotu/%'] = [
+    'title' => 'Bæta lögum á hljómplötu',
+    'page callback' => 'ismus_admin_songs_to_album_freestyle_page',
+    'access arguments' => ['access administration pages'],
+    'page arguments' => array(2),
+    'file' => 'includes/songs_to_album_freestyle.inc',
+    'file path' => drupal_get_path('module', 'ismus_admin'),
+  ];
+
+  /**
+   * AUTOCOMPLETE CALLBACKS
+   */
+  $items['lag/unique_node_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_unique_node_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  $items['lag/unique_artist_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_artist_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  $items['lag/unique_work_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_work_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  $items['lag/unique_taxonomy_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_unique_taxonomy_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  $items['hljodfaeri/unique_instrument_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_unique_instrument_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  $items['utgefandi/unique_publisher_autocomplete_callback'] = array(
+    'page callback' => 'ismus_admin_unique_publisher_autocomplete_callback',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission()
+ *
+ * @return array
+ */
+function ismus_admin_permission(){
+  return [
+    'create ismus content' => [
+      'title' => t('Create Íslensk tónlist content')
+    ],
+    'update ismus content' => [
+      'title' => t('Update Íslensk tónlist content')
+    ],
+  ];
+}
+
+function ismus_admin_form_alter(&$form, &$form_state, $form_id) {
+  if(($form_id == 'work_node_form') && (arg(2) == 'edit')){
+    if($form['#node']->field_work_type[LANGUAGE_NONE][0]['tid'] == HLJOMPLATA) {
+      drupal_goto('/verk/breyta-hljomplotu/' . $form['nid']['#value']);
+    }
+    elseif($form['#node']->field_work_type[LANGUAGE_NONE][0]['tid'] == LAG) {
+      drupal_goto('/verk/breyta-lagi/' . $form['nid']['#value']);
+    }
+
+  }
+  if(($form_id == 'artist_node_form') && (arg(2) == 'edit')){
+    drupal_goto('/listamadur/breyta-listamanni/' . $form['nid']['#value']);
+  }
+}
+
+/**
+* Autocomplete callback for nodes by title.
+ *
+ * Searches for a node by title, but then identifies it by nid, so the actual
+ * returned value can be used later by the form.
+ *
+ * The returned $matches array has
+ * - key: The title, with the identifying nid in brackets, like "Some node
+ *   title [3325]"
+ * - value: the title which will is displayed in the autocomplete pulldown.
+ *
+ * Note that we must use a key style that can be parsed successfully and
+ * unambiguously. For example, if we might have node titles that could have
+ * [3325] in them, then we'd have to use a more restrictive token.
+ *
+ * @param string $string
+ *   The string that will be searched.
+ */
+function ismus_admin_unique_node_autocomplete_callback($string = "") {
+  $matches = array();
+  if ($string) {
+    $result = db_select('node')
+      ->fields('node', array('nid', 'title', 'type'))
+      ->condition('title', db_like($string) . '%', 'LIKE')
+      ->condition('type', array('work', 'artist'))
+      ->range(0, 20)
+      ->execute();
+    foreach ($result as $node) {
+      $artist = null;
+
+      $relations = ismus_api_get_all_appearance_relations_for_work($node->nid);
+
+      $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type)";
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_admin_work_autocomplete_callback($string = "") {
+  $matches = array();
+  if ($string) {
+    $result = db_select('node')
+      ->fields('node', array('nid', 'title', 'type'))
+      ->condition('title', db_like($string) . '%', 'LIKE')
+      ->condition('type', 'work')
+      ->range(0, 20)
+      ->execute();
+    foreach ($result as $node) {
+      $relations = ismus_api_get_artist_performs_work_relations(null, $node->nid);
+      if($relations){
+        $relations = array_values($relations);
+        $artist = node_load($relations[0]->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $work = node_load($relations[0]->endpoints[LANGUAGE_NONE][1]['entity_id']);
+        $work_type_string = ($work->field_work_type[LANGUAGE_NONE][0]['tid'] == HLJOMPLATA)
+          ? 'Plata' : 'Lag';
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($work_type_string) (" . $artist->title. ")";
+      }
+      else{
+        $relations = array_values($relations);
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type) (Ótengt listamanni)";
+      }
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_admin_unique_publisher_autocomplete_callback($string = "") {
+  $matches = array();
+  if ($string) {
+    $result = db_select('node')
+      ->fields('node', array('nid', 'title', 'type'))
+      ->condition('title', db_like($string) . '%', 'LIKE')
+      ->condition('type', 'publisher')
+      ->range(0, 20)
+      ->execute();
+    foreach ($result as $node) {
+      $relations = ismus_api_get_artist_performs_work_relations(null, $node->nid);
+      if($relations){
+        $relations = array_values($relations);
+        $artist = node_load($relations[0]->endpoints[LANGUAGE_NONE][0]['entity_id']);
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type) (" . $artist->title. ")";
+      }
+      else{
+        $relations = array_values($relations);
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type) (Ótengt listamanni)";
+      }
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_admin_artist_autocomplete_callback($string = "") {
+  $matches = array();
+  if ($string) {
+    $result = db_select('node')
+      ->fields('node', array('nid', 'title', 'type'))
+      ->condition('title', db_like($string) . '%', 'LIKE')
+      ->condition('type', 'artist')
+      ->range(0, 20)
+      ->execute();
+    foreach ($result as $node) {
+      $relations = ismus_api_get_artist_performs_work_relations($node->nid, null);
+      if($relations){
+        $relations = array_values($relations);
+        $relation_arr = [];
+        for($i = 0; $i <= 1; $i++){
+          $work = node_load($relations[$i]->endpoints[LANGUAGE_NONE][1]['entity_id']);
+          $relation_arr[] = $work->title;
+        }
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type) (" . implode(',', $relation_arr) . ")";
+      }
+      else{
+        $matches[$node->title . " [$node->nid]"] = check_plain($node->title) . " [$node->nid] ($node->type) (Ekkert verk tengt listamanni)";
+      }
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_admin_unique_taxonomy_autocomplete_callback($string = ""){
+  $matches = array();
+  if ($string) {
+    $result = db_select('taxonomy_term_data', 'taxonomy')
+      ->fields('taxonomy', array('tid', 'name'))
+      ->condition('name', db_like($string) . '%', 'LIKE')
+      ->condition('vid', array(8), '=')
+      ->range(0, 10)
+      ->execute();
+    foreach ($result as $tax) {
+      $matches[$tax->name . " [$tax->tid]"] = check_plain($tax->name);
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_admin_unique_instrument_autocomplete_callback($string = "") {
+  $vocabulary = taxonomy_vocabulary_machine_name_load('artist_role');
+  $matches = array();
+  if ($string) {
+    $result = db_select('taxonomy_term_data', 'taxonomy')
+      ->fields('taxonomy', array('tid', 'name'))
+      ->condition('name', db_like($string) . '%', 'LIKE')
+      ->condition('vid', array($vocabulary->vid), '=')
+      ->range(0, 10)
+      ->execute();
+    foreach ($result as $tax) {
+      $matches[$tax->name] = check_plain($tax->name);
+    }
+  }
+
+  drupal_json_output($matches);
+}
+
+function ismus_instrument_autocomplete_validate($element, &$form_state) {
+  // Autocomplete widgets do not send their tids in the form, so we must detect
+  // them here and process them independently.
+  $value = array();
+  if ($tags = $element['#value']) {
+    // Collect candidate vocabularies.
+    $field = field_info_field($element['#name']); //@HACK: is here!
+
+    $vocabularies = array();
+    foreach ($field['settings']['allowed_values'] as $tree) {
+      if ($vocabulary = taxonomy_vocabulary_machine_name_load($tree['vocabulary'])) {
+        $vocabularies[$vocabulary->vid] = $vocabulary;
+      }
+    }
+
+    // Translate term names into actual terms.
+    $typed_terms = drupal_explode_tags($tags);
+    foreach ($typed_terms as $typed_term) {
+      // See if the term exists in the chosen vocabulary and return the tid;
+      // otherwise, create a new 'autocreate' term for insert/update.
+      if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array_keys($vocabularies)))) {
+        $term = array_pop($possibilities);
+      }
+      else {
+        $vocabulary = reset($vocabularies);
+        $term = array(
+          'tid' => 'autocreate',
+          'vid' => $vocabulary->vid,
+          'name' => $typed_term,
+          'vocabulary_machine_name' => $vocabulary->machine_name,
+        );
+      }
+      $value[] = (array)$term;
+    }
+  }
+
+  form_set_value($element, $value, $form_state);
+}
+
+/**
+ * Implements hook_theme()
+ */
+function ismus_admin_theme(){
+  return array(
+    'ismus_admin_form_table' => array(
+      'render element' => 'form',
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme()
+ */
+function theme_ismus_admin_form_table(&$variables){
+  $form = $variables['form'];
+  $rows = $form['rows'];
+  $header = $form['#header'];
+
+  // Setup the structure to be rendered and returned.
+  $content = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => array(),
+  );
+
+  // Traverse each row.  @see element_chidren().
+  foreach (element_children($rows) as $row_index) {
+    $row = array();
+    // Traverse each column in the row.  @see element_children().
+    $element = element_children($rows[$row_index]);
+    foreach (element_children($rows[$row_index]) as $col_index) {
+      // Render the column form element.
+      $row[] = drupal_render($rows[$row_index][$col_index]);
+    }
+    // Add the row to the table.
+    $content['#rows'][] = $row;
+  }
+
+  // Redner the table and return.
+  return drupal_render($content);
+}
